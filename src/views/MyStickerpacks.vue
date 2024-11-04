@@ -1,0 +1,3 @@
+<template>
+    My stickerpacks
+</template>
