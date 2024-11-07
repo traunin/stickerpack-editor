@@ -4,3 +4,19 @@
     font-family: "Roboto", sans-serif !important;
     box-sizing: border-box;
 }
+
+.light {
+    --text: #ebedef;
+    --background: #06090a;
+    --primary: #1838da;
+    --secondary: #134b70;
+    --accent: #44a0e1;
+}
+
+.dark {
+    --text: #06090a;
+    --background: #ebedef;
+    --primary: #1838da;
+    --secondary: #134b70;
+    --accent: #44a0e1;
+}
