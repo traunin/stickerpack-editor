@@ -1,5 +1,5 @@
 <template>
-    <div class="container">
+    <div class="container light">
         <navbar></navbar>
         <router-view></router-view>
     </div>
@@ -12,8 +12,8 @@ import Navbar from '@/components/Navbar.vue';
 <style scoped>
 .container {
     position: fixed;
-    background: #000;
-    color: #fff;
+    background: var(--background);
+    color: var(--text);
     top: 0;
     left: 0;
     width: 100%;
