@@ -5,7 +5,7 @@
     box-sizing: border-box;
 }
 
-.light {
+.dark {
     --text: #ebedef;
     --background: #06090a;
     --primary: #1838da;
@@ -13,7 +13,7 @@
     --accent: #44a0e1;
 }
 
-.dark {
+.light {
     --text: #06090a;
     --background: #ebedef;
     --primary: #1838da;

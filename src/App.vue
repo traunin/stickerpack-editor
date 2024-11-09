@@ -1,5 +1,5 @@
 <template>
-    <div class="container light">
+    <div class="container dark">
         <navbar></navbar>
         <router-view></router-view>
     </div>
