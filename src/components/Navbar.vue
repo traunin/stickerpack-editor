@@ -4,7 +4,7 @@
         <ul>
             <li>
                 <router-link 
-                    :to="`/my-stickerpacks`"
+                    :to="`/`"
                     class="link"
                     active-class="active"
                 ><span>My stickerpacks</span></router-link>
