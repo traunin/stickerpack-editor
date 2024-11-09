@@ -7,7 +7,7 @@
                     :to="`/my-stickerpacks`"
                     class="link"
                     active-class="active"
-                >My stickerpacks</router-link>
+                ><span>My stickerpacks</span></router-link>
             </li>
         </ul>
     </nav>
@@ -15,27 +15,50 @@
 
 <style scoped>
 h1 {
-    font-size: 2em;
+    font-size: 1.5em;
     text-align: center;
-    padding: 10px 40px;
+    padding: 20px 40px;
 }
 
 nav {
     display: flex;
-    border-bottom: 3px solid #fff;
+    background: var(--secondary);
+    padding: 1px;
 }
 
 ul {
     display: flex;
     flex: 1;
-    align-items: center;
     justify-content: center;
     margin-left: -336px;
+}
+
+li {
+    display: flex;
 }
 
 .link {
     padding: 20px;
     text-decoration: none;
-    color: white
+    color: var(--text);
+    font-size: 1.2em;
+    border-left: 3px solid var(--secondary);
+    border-right: 3px solid var(--secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.link:hover {
+    background: var(--accent);
+    border-color: var(--accent)
+}
+
+.active {
+    border-color: var(--text)
+}
+
+.active:hover {
+    border-color: var(--text);
 }
 </style>
