@@ -1,3 +1,7 @@
+server/build
+server/.tdlib
+server/credentials.go
+
 # Logs
 logs
 *.log
