@@ -1,6 +1,6 @@
 <template>    
     <nav>
-    <h1>Stickerpack editor</h1>
+        <h1>Stickerpack editor</h1>
         <ul>
             <li>
                 <router-link 
@@ -10,8 +10,20 @@
                 ><span>My stickerpacks</span></router-link>
             </li>
         </ul>
+
+        <div class="tg-auth">
+            <telegram-login :onAuth="handleAuth"></telegram-login>
+        </div>
     </nav>
 </template>
+
+<script setup lang="ts">
+import TelegramLogin from '@/components/TelegramLogin.vue';
+
+function handleAuth(user: any) {
+    alert(user)
+}
+</script>
 
 <style scoped>
 h1 {
@@ -30,7 +42,8 @@ ul {
     display: flex;
     flex: 1;
     justify-content: center;
-    margin-left: -336px;
+    margin-left: -280px;
+    margin-right: -218px;
 }
 
 li {
@@ -60,5 +73,11 @@ li {
 
 .active:hover {
     border-color: var(--text);
+}
+
+.tg-auth {
+    margin: 0 40px;
+    display: flex;
+    align-items: center;
 }
 </style>
