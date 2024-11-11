@@ -2,4 +2,4 @@ module github.com/stickerpack-editor
 
 go 1.22.2
 
-require github.com/zelenin/go-tdlib v0.7.3
+require gopkg.in/telebot.v3 v3.3.8 // indirect
