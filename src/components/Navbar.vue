@@ -21,6 +21,7 @@
 import TelegramLogin from '@/components/TelegramLogin.vue';
 
 function handleAuth(user: any) {
+    console.log(user)
     alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
 }
 </script>
@@ -29,7 +30,9 @@ function handleAuth(user: any) {
 h1 {
     font-size: 1.5em;
     text-align: center;
-    padding: 20px 40px;
+    padding: 20px;
+    position: absolute;
+    left: 20px;
 }
 
 nav {
@@ -42,8 +45,6 @@ ul {
     display: flex;
     flex: 1;
     justify-content: center;
-    margin-left: -280px;
-    margin-right: -218px;
 }
 
 li {
@@ -76,7 +77,9 @@ li {
 }
 
 .tg-auth {
-    margin: 0 40px;
+    padding: 10px 20px;
+    position: absolute;
+    right: 20px;
     display: flex;
     align-items: center;
 }
