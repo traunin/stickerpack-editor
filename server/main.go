@@ -12,6 +12,15 @@ type Stickerpack struct {
     Name string `json:"name"`
 }
 
+var StickerpackMocks = []Stickerpack {
+    {"monkaS"},
+    {"peepoS"},
+    {"Jokerge"},
+    {"xdd"},
+    {"hiii"},
+    {"tuh"},
+}
+
 func LaunchBot() {
     bot, err := telebot.NewBot(telebot.Settings {
         Token: BotToken,
@@ -35,12 +44,8 @@ func main() {
         w.Header().Set("Access-Control-Allow-Origin", "*") 
         w.Header().Set("Access-Control-Allow-Methods", "GET")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")  
-        
-        monkas := Stickerpack{
-            Name: "MONKAS",
-        }
 
-        json.NewEncoder(w).Encode(monkas)
+        json.NewEncoder(w).Encode(StickerpackMocks)
     })
 
 	http.ListenAndServe(":8080", nil)
