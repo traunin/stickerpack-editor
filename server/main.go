@@ -1,11 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 
-	telebot "gopkg.in/telebot.v3"
+	"gopkg.in/telebot.v3"
 )
-func main() {
+
+type Stickerpack struct {
+    Name string `json:"name"`
+}
+
+func LaunchBot() {
     bot, err := telebot.NewBot(telebot.Settings {
         Token: BotToken,
     })
@@ -21,4 +28,20 @@ func main() {
 	})
 
 	bot.Start()
+}
+
+func main() {
+    http.HandleFunc("/api/stickerpacks", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "*") 
+        w.Header().Set("Access-Control-Allow-Methods", "GET")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")  
+        
+        monkas := Stickerpack{
+            Name: "MONKAS",
+        }
+
+        json.NewEncoder(w).Encode(monkas)
+    })
+
+	http.ListenAndServe(":8080", nil)
 }
