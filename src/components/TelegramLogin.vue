@@ -6,18 +6,27 @@
 </template>
 
 <script setup lang="ts">
-declare global {
-    interface Window { onAuth: any }
-}
-
 import { onMounted, ref } from 'vue';
 
-const props = defineProps({
-    onAuth: {
-        type: Function,
-        required: true
+export type User = {
+    auth_date: number
+    first_name: string
+    hash: string 
+    id: number
+    photo_url: string
+    username: string
+}
+
+declare global {
+    interface Window {
+        onAuth: (user: User) =>  void
     }
-})
+}
+
+const props = defineProps<{
+    onAuth: (user: User) => void;
+}>();
+
 
 const telegramWidget = ref<null | HTMLElement>(null);
 
