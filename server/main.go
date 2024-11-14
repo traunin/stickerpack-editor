@@ -9,30 +9,30 @@ import (
 )
 
 type Stickerpack struct {
-    Name string `json:"name"`
+	Name string `json:"name"`
 }
 
-var StickerpackMocks = []Stickerpack {
-    {"monkaS"},
-    {"peepoS"},
-    {"Jokerge"},
-    {"xdd"},
-    {"hiii"},
-    {"tuh"},
+var StickerpackMocks = []Stickerpack{
+	{"monkaS"},
+	{"peepoS"},
+	{"Jokerge"},
+	{"xdd"},
+	{"hiii"},
+	{"tuh"},
 }
 
 func LaunchBot() {
-    bot, err := telebot.NewBot(telebot.Settings {
-        Token: BotToken,
-    })
+	bot, err := telebot.NewBot(telebot.Settings{
+		Token: BotToken,
+	})
 
-    if (err != nil) {
-        print(err)
-    }
+	if err != nil {
+		print(err)
+	}
 
-    // bot.createNewStickerSet
-    bot.Handle("/start", func(c telebot.Context) error {
-        fmt.Printf("Message from %d\n", c.Chat().ID)
+	// bot.createNewStickerSet
+	bot.Handle("/start", func(c telebot.Context) error {
+		fmt.Printf("Message from %d\n", c.Chat().ID)
 		return c.Send(fmt.Sprintf("%d", c.Chat().ID))
 	})
 
@@ -40,13 +40,13 @@ func LaunchBot() {
 }
 
 func main() {
-    http.HandleFunc("/api/stickerpacks", func(w http.ResponseWriter, r *http.Request) {
-        w.Header().Set("Access-Control-Allow-Origin", "*") 
-        w.Header().Set("Access-Control-Allow-Methods", "GET")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")  
+	http.HandleFunc("/api/stickerpacks", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-        json.NewEncoder(w).Encode(StickerpackMocks)
-    })
+		json.NewEncoder(w).Encode(StickerpackMocks)
+	})
 
 	http.ListenAndServe(":8080", nil)
 }
