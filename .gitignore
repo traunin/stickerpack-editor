@@ -1,6 +1,6 @@
 server/build
 server/.tdlib
-server/credentials.go
+server/config
 deploy.sh
 
 # Logs
