@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/stickerpack-editor/config"
 	"gopkg.in/telebot.v3"
 )
 
@@ -24,7 +25,7 @@ var StickerpackMocks = []Stickerpack{
 
 func LaunchBot() {
 	bot, err := telebot.NewBot(telebot.Settings{
-		Token: BotToken,
+		Token: config.BotToken,
 	})
 
 	if err != nil {
@@ -50,27 +51,38 @@ func (r TelegramRecipient) Recipient() string {
 
 func getUserById(id int64) {
 	bot, err := telebot.NewBot(telebot.Settings{
-		Token: BotToken,
+		Token: config.BotToken,
 	})
 
 	if err != nil {
-		print(err)
+		return
 	}
+
 	recipient := &TelegramRecipient{strconv.Itoa(int(id))}
 	err = bot.CreateStickerSet(recipient, &telebot.StickerSet{
 		Type:     telebot.StickerRegular,
 		Format:   telebot.StickerStatic,
-		Name:     "skibidi_rizzling_rizzler124451",
-		Title:    "skibidi_rizzling_rizzler124451",
-		Animated: false,
-		Video:    false,
-		Stickers: []telebot.Sticker{},
+		Name:     "jokerge_by_seventv_stickerpack_bot",
+		Title:    "Jokerge",
+		Animated: true,
+		Video:    true,
+		Input: []telebot.InputSticker{
+			{
+				File: telebot.FromDisk("jokerge.webp"),
+				Emojis: []string{
+					"🤡",
+				},
+				Keywords: []string{
+					"Jokerge",
+				},
+			},
+		},
 	})
 	if err != nil {
 		println("stickerpack error")
-		println(err)
+		println(err.Error())
 	}
-	bot.CreateStickerSet(recipient, &telebot.StickerSet{Name: "aboba2"})
+
 	fmt.Println(id)
 	chat, err := bot.ChatByID(id)
 
