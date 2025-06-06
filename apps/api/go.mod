@@ -1,4 +1,4 @@
-module github.com/Traunin/stickerpack-editor/server
+module github.com/Traunin/stickerpack-editor/apps/api
 
 go 1.22.2
 
