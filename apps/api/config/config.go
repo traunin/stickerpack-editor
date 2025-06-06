@@ -1,0 +1,51 @@
+package config
+
+import (
+	"log"
+	"os"
+	"sync"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	TelegramToken string
+	Port          string
+}
+
+var (
+	cfg  *Config
+	once sync.Once
+)
+
+func Load() *Config {
+	once.Do(func() {
+		if err := godotenv.Load(); err != nil {
+			log.Println("No local .env found")
+		}
+
+		cfg = &Config{
+			Port:          fallbackEnv("PORT", "8080"),
+			TelegramToken: mustEnv("TELEGRAM_TOKEN"),
+		}
+	})
+
+	return cfg
+}
+
+func mustEnv(key string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		log.Fatalf("Missing required %s\n", key)
+	}
+
+	return val
+}
+
+func fallbackEnv(key, fallback string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+
+	return fallback
+}
