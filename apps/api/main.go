@@ -6,9 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/stickerpack-editor/config"
+	"github.com/Traunin/stickerpack-editor/server/config"
 	"gopkg.in/telebot.v3"
 )
+
+type StickerPackBot struct {
+	*telebot.Bot
+}
 
 type Stickerpack struct {
 	Name string `json:"name"`
@@ -21,6 +25,13 @@ var StickerpackMocks = []Stickerpack{
 	{"xdd"},
 	{"hiii"},
 	{"tuh"},
+}
+
+func (bot *StickerPackBot) createMockStickerSet() {
+	bot.Handle("/start", func(c telebot.Context) error {
+		fmt.Printf("Message from %d\n", c.Chat().ID)
+		return c.Send(fmt.Sprintf("%d", c.Chat().ID))
+	})
 }
 
 func LaunchBot() {
@@ -111,6 +122,7 @@ func handleUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// LaunchBot()
 	http.HandleFunc("/api/stickerpacks", handleStickerpacks)
 	http.HandleFunc("/api/user", handleUser)
 
