@@ -21,6 +21,11 @@ type CreatePackResponse struct {
 	PackURL string `json:"pack_url"`
 }
 
+var format = map[bool]string{
+	true:  "video",
+	false: "static",
+}
+
 func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method is not POST", http.StatusBadRequest)
@@ -57,20 +62,20 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	stickers := make([]telegram.Sticker, emoteCount)
 
 	for i, emote := range req.Emotes {
-		image, err := emote.Download()
+		emoteData, err := emote.Download()
 		if err != nil {
-			log.Fatalf("failed downloading emote %s", emote.SevenTVID)
+			log.Printf("failed downloading emote %s", emote.SevenTVID)
 			continue
 		}
-		resized, err := resize.PNG(image)
+		err = resize.FitEmote(&emoteData)
 		if err != nil {
-			log.Fatalf("failed resizing emote %s", emote.SevenTVID)
+			log.Printf("failed resizing emote %s: %v", emote.SevenTVID, err)
 			continue
 		}
 		stickers[i] = telegram.Sticker{
-			Sticker:    resized,
-			Format:     "static",
-			Keywords:   emote.Keywords,
+			Sticker:   emoteData.File,
+			Format:    format[emoteData.Animated],
+			Keywords:  emote.Keywords,
 			EmojiList: emote.EmojiList,
 		}
 	}

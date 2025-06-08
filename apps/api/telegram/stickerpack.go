@@ -13,10 +13,10 @@ import (
 )
 
 type Sticker struct {
-	Sticker    []byte
-	Format     string
+	Sticker   []byte
+	Format    string
 	EmojiList []string
-	Keywords   []string
+	Keywords  []string
 }
 
 type StickerPack struct {
@@ -27,10 +27,10 @@ type StickerPack struct {
 }
 
 type inputSticker struct {
-	Sticker    string   `json:"sticker"`
-	Format     string   `json:"format"`
+	Sticker   string   `json:"sticker"`
+	Format    string   `json:"format"`
 	EmojiList []string `json:"emoji_list"`
-	Keywords   []string `json:"keywords"`
+	Keywords  []string `json:"keywords"`
 }
 
 func (pack StickerPack) Create() (string, error) {
@@ -50,10 +50,10 @@ func (pack StickerPack) Create() (string, error) {
 	inputStickers := make([]inputSticker, len(pack.Stickers))
 	for i, sticker := range pack.Stickers {
 		inputStickers[i] = inputSticker{
-			Sticker:    fmt.Sprintf("attach://sticker%d", i),
+			Sticker:   fmt.Sprintf("attach://sticker%d", i),
 			EmojiList: sticker.EmojiList,
-			Format:     sticker.Format,
-			Keywords:   sticker.Keywords,
+			Format:    sticker.Format,
+			Keywords:  sticker.Keywords,
 		}
 	}
 
@@ -64,7 +64,11 @@ func (pack StickerPack) Create() (string, error) {
 	writer.WriteField("stickers", string(jsonStickers))
 
 	for i, sticker := range pack.Stickers {
-		part, err := writer.CreateFormFile(fmt.Sprintf("sticker%d", i), fmt.Sprintf("sticker%d.webp", i))
+		extension := ".png"
+		if sticker.Format == "video" {
+			extension = ".webm"
+		}
+		part, err := writer.CreateFormFile(fmt.Sprintf("sticker%d", i), fmt.Sprintf("sticker%d%s", i, extension))
 		if err != nil {
 			return "", fmt.Errorf("failed writing to request: %w", err)
 		}
