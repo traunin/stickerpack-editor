@@ -11,6 +11,7 @@ import (
 type Config struct {
 	TelegramToken string
 	Port          string
+	BotName       string
 }
 
 var (
@@ -27,6 +28,7 @@ func Load() *Config {
 		cfg = &Config{
 			Port:          fallbackEnv("PORT", "8080"),
 			TelegramToken: mustEnv("TELEGRAM_TOKEN"),
+			BotName:       mustEnv("BOT_NAME"),
 		}
 	})
 
