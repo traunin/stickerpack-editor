@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/config"
 )
@@ -90,4 +91,28 @@ func (pack StickerPack) Create() (string, error) {
 
 	stickerPackURL := fmt.Sprintf("https://t.me/addstickers/%s", validName)
 	return stickerPackURL, nil
+}
+
+func (pack StickerPack) Delete() error {
+	config := config.Load()
+	botToken := config.TelegramToken
+	botName := config.BotName
+	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/deleteStickerSet", botToken)
+
+	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
+
+	resp, err := http.PostForm(requestURL, url.Values{
+		"name": {validName},
+	})
+	if err != nil {
+		return fmt.Errorf("deleteStickerSet failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API error: %s", string(body))
+	}
+
+	return nil
 }

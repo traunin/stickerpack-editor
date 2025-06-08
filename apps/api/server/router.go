@@ -9,6 +9,7 @@ func SetupRouter() http.Handler {
 
 	api := http.NewServeMux()
 	api.HandleFunc("/create-pack", createPackHandler)
+	api.HandleFunc("/delete-pack", deletePackHandler)
 
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	return mux
