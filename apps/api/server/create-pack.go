@@ -59,19 +59,19 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	for i, emote := range req.Emotes {
 		image, err := emote.Download()
 		if err != nil {
-			log.Fatalf("failed downloading emote %s", emote.URL)
+			log.Fatalf("failed downloading emote %s", emote.SevenTVID)
 			continue
 		}
 		resized, err := resize.PNG(image)
 		if err != nil {
-			log.Fatalf("failed resizing emote %s", emote.URL)
+			log.Fatalf("failed resizing emote %s", emote.SevenTVID)
 			continue
 		}
 		stickers[i] = telegram.Sticker{
 			Sticker:    resized,
 			Format:     "static",
 			Keywords:   emote.Keywords,
-			Emoji_list: emote.Emoji_list,
+			EmojiList: emote.EmojiList,
 		}
 	}
 

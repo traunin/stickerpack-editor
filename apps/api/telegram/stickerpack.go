@@ -15,7 +15,7 @@ import (
 type Sticker struct {
 	Sticker    []byte
 	Format     string
-	Emoji_list []string
+	EmojiList []string
 	Keywords   []string
 }
 
@@ -29,7 +29,7 @@ type StickerPack struct {
 type inputSticker struct {
 	Sticker    string   `json:"sticker"`
 	Format     string   `json:"format"`
-	Emoji_list []string `json:"emoji_list"`
+	EmojiList []string `json:"emoji_list"`
 	Keywords   []string `json:"keywords"`
 }
 
@@ -51,7 +51,7 @@ func (pack StickerPack) Create() (string, error) {
 	for i, sticker := range pack.Stickers {
 		inputStickers[i] = inputSticker{
 			Sticker:    fmt.Sprintf("attach://sticker%d", i),
-			Emoji_list: sticker.Emoji_list,
+			EmojiList: sticker.EmojiList,
 			Format:     sticker.Format,
 			Keywords:   sticker.Keywords,
 		}
