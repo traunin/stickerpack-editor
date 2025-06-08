@@ -3,6 +3,10 @@ module github.com/Traunin/stickerpack-editor/apps/api
 go 1.22.2
 
 require (
+	github.com/disintegration/imaging v1.6.2
 	github.com/joho/godotenv v1.5.1
-	gopkg.in/telebot.v3 v3.3.8 // indirect
+)
+
+require (
+	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
 )
