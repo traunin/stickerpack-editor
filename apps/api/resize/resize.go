@@ -81,7 +81,7 @@ func fitGif(input []byte) ([]byte, error) {
 		"-f", "webm",
 		"-an",          // No audio
 		"-row-mt", "1", // Multi-threading
-		"-crf", "40", // Quality, increase if Durov complains about file size
+		"-crf", "50", // Quality, increase if Durov complains about file size
 		"-b:v", "0", // Variable bitrate
 		"-auto-alt-ref", "0", // Better for transparent videos
 		"-quality", "good", // Quality preset
