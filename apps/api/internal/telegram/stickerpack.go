@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
 
 type Sticker struct {

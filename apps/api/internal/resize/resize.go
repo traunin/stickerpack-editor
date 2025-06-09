@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/emote"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
 	"github.com/disintegration/imaging"
 )
 

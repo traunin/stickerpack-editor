@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/emote"
-	"github.com/Traunin/stickerpack-editor/apps/api/resize"
-	"github.com/Traunin/stickerpack-editor/apps/api/telegram"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/resize"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
 type CreatePackRequest struct {
