@@ -18,18 +18,18 @@ type DeletePackResponse struct {
 
 func deletePackHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method is not DELETE", http.StatusBadRequest)
+		http.Error(w, "method is not DELETE", http.StatusBadRequest)
 		return
 	}
 
 	var req DeletePackRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON schema", http.StatusBadRequest)
+		http.Error(w, "invalid JSON schema", http.StatusBadRequest)
 		return
 	}
 
 	if req.PackName == "" {
-		http.Error(w, "Stickerpack name missing", http.StatusBadRequest)
+		http.Error(w, "stickerpack name missing", http.StatusBadRequest)
 		return
 	}
 
@@ -39,7 +39,7 @@ func deletePackHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := pack.Delete()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to delete sticker pack: %v", err), http.StatusBadGateway)
+		http.Error(w, fmt.Sprintf("failed to delete sticker pack: %v", err), http.StatusBadGateway)
 		return
 	}
 

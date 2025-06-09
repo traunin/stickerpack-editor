@@ -13,7 +13,7 @@ func init() {
 	_, err := exec.LookPath("ffmpeg")
 
 	if err != nil {
-		log.Fatal("No ffmpeg found on PATH, consider reloading or install if you haven't.")
+		log.Fatal("no ffmpeg found on PATH, consider reloading or install if you haven't.")
 	}
 }
 

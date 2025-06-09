@@ -28,34 +28,34 @@ var format = map[bool]string{
 
 func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method is not POST", http.StatusBadRequest)
+		http.Error(w, "method is not POST", http.StatusBadRequest)
 		return
 	}
 
 	var req CreatePackRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON schema", http.StatusBadRequest)
+		http.Error(w, "invalid JSON schema", http.StatusBadRequest)
 		return
 	}
 
 	if req.PackName == "" {
-		http.Error(w, "Stickerpack name missing", http.StatusBadRequest)
+		http.Error(w, "stickerpack name missing", http.StatusBadRequest)
 		return
 	}
 
 	if req.Title == "" {
-		http.Error(w, "Stickerpack title missing", http.StatusBadRequest)
+		http.Error(w, "stickerpack title missing", http.StatusBadRequest)
 		return
 	}
 
 	if req.UserID == "" {
-		http.Error(w, "User ID missing", http.StatusBadRequest)
+		http.Error(w, "user ID missing", http.StatusBadRequest)
 		return
 	}
 
 	emoteCount := len(req.Emotes)
 	if emoteCount == 0 {
-		http.Error(w, "No emotes in stickerpack", http.StatusBadRequest)
+		http.Error(w, "no emotes in stickerpack", http.StatusBadRequest)
 		return
 	}
 

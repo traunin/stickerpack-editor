@@ -22,7 +22,7 @@ var (
 func Load() *Config {
 	once.Do(func() {
 		if err := godotenv.Load(); err != nil {
-			log.Println("No local .env found")
+			log.Println("no local .env found")
 		}
 
 		cfg = &Config{
@@ -38,7 +38,7 @@ func Load() *Config {
 func mustEnv(key string) string {
 	val, ok := os.LookupEnv(key)
 	if !ok {
-		log.Fatalf("Missing required %s\n", key)
+		log.Fatalf("missing required %s\n", key)
 	}
 
 	return val

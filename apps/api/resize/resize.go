@@ -18,7 +18,7 @@ func FitEmote(emote *emote.EmoteData) error {
 	if emote.Animated {
 		resizedWebm, err := fitGIF(emote.File)
 		if err != nil {
-			return fmt.Errorf("Error resizing emote: %w", err)
+			return fmt.Errorf("error resizing emote: %w", err)
 		}
 		emote.File = resizedWebm
 		return nil
@@ -26,7 +26,7 @@ func FitEmote(emote *emote.EmoteData) error {
 
 	resizedPng, err := fitPNG(emote.File)
 	if err != nil {
-		return fmt.Errorf("Error resizing emote: %w", err)
+		return fmt.Errorf("error resizing emote: %w", err)
 	}
 	emote.File = resizedPng
 

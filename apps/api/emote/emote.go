@@ -31,7 +31,7 @@ var extensions = map[bool]string{
 func (e Emote) Download() (EmoteData, error) {
 	isAnimated, err := e.isAnimated()
 	if err != nil {
-		return EmoteData{}, fmt.Errorf("Failed to get data for %s: %w", e.SevenTVID, err)
+		return EmoteData{}, fmt.Errorf("failed to get data for %s: %w", e.SevenTVID, err)
 	}
 
 	extension := extensions[isAnimated]
@@ -39,18 +39,18 @@ func (e Emote) Download() (EmoteData, error) {
 
 	resp, err := http.Get(emoteURL)
 	if err != nil {
-		return EmoteData{}, fmt.Errorf("Failed to send download request for %s: %w", emoteURL, err)
+		return EmoteData{}, fmt.Errorf("failed to send download request for %s: %w", emoteURL, err)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return EmoteData{}, fmt.Errorf("Download response invalid for %s: %d", emoteURL, resp.StatusCode)
+		return EmoteData{}, fmt.Errorf("download response invalid for %s: %d", emoteURL, resp.StatusCode)
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return EmoteData{}, fmt.Errorf("Failed to read download for %s: %w", emoteURL, err)
+		return EmoteData{}, fmt.Errorf("failed to read download for %s: %w", emoteURL, err)
 	}
 
 	emoteData := EmoteData{
@@ -68,20 +68,20 @@ func (e Emote) isAnimated() (bool, error) {
 	requestURL := fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.SevenTVID)
 	resp, err := http.Get(requestURL)
 	if err != nil {
-		return false, fmt.Errorf("Failed to request %s: %w", requestURL, err)
+		return false, fmt.Errorf("failed to request %s: %w", requestURL, err)
 	}
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case 404:
-		return false, fmt.Errorf("Emote does not exist")
+		return false, fmt.Errorf("emote does not exist")
 	case 400:
-		return false, fmt.Errorf("Wrong ID")
+		return false, fmt.Errorf("wrong ID")
 	}
 
 	var info SevenTVResponse
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return false, fmt.Errorf("Failed to parse 7tv response for %s: %w", requestURL, err)
+		return false, fmt.Errorf("failed to parse 7tv response for %s: %w", requestURL, err)
 	}
 
 	return info.Animated, nil
