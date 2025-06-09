@@ -72,8 +72,10 @@ func fitGif(input []byte) ([]byte, error) {
 
 	outputPath := filepath.Join(tmpDir, "output.webm")
 
+	// TODO cut vs speed up? file size checking?
 	cmd := exec.Command("ffmpeg",
 		"-i", inputPath,
+		"-filter_complex", "[0:v]trim=duration=3,setpts=PTS-STARTPTS,scale=512:-1",
 		"-c:v", "libvpx-vp9",
 		"-pix_fmt", "yuva420p",
 		"-f", "webm",
@@ -81,8 +83,6 @@ func fitGif(input []byte) ([]byte, error) {
 		"-row-mt", "1", // Multi-threading
 		"-crf", "40", // Quality, increase if Durov complains about file size
 		"-b:v", "0", // Variable bitrate
-		"-t", "3", // Max duration 3 seconds
-		"-vf", "scale=512:-1", // Simplified scaling (width=512, maintain aspect)
 		"-auto-alt-ref", "0", // Better for transparent videos
 		"-quality", "good", // Quality preset
 		"-cpu-used", "4", // Faster encoding
