@@ -28,14 +28,14 @@ var extensions = map[bool]string{
 	false: ".png",
 }
 
-func (emote Emote) Download() (EmoteData, error) {
-	isAnimated, err := emote.isAnimated()
+func (e Emote) Download() (EmoteData, error) {
+	isAnimated, err := e.isAnimated()
 	if err != nil {
-		return EmoteData{}, fmt.Errorf("Failed to get data for %s: %w", emote.SevenTVID, err)
+		return EmoteData{}, fmt.Errorf("Failed to get data for %s: %w", e.SevenTVID, err)
 	}
 
 	extension := extensions[isAnimated]
-	emoteURL := fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", emote.SevenTVID, extension)
+	emoteURL := fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.SevenTVID, extension)
 
 	resp, err := http.Get(emoteURL)
 	if err != nil {
@@ -61,11 +61,11 @@ func (emote Emote) Download() (EmoteData, error) {
 	return emoteData, nil
 }
 
-func (emote Emote) isAnimated() (bool, error) {
+func (e Emote) isAnimated() (bool, error) {
 	// Currently using an old api, if it's deprecated...
 	// We'll have to deal with GraphQL...
 
-	requestURL := fmt.Sprintf("https://7tv.io/v3/emotes/%s", emote.SevenTVID)
+	requestURL := fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.SevenTVID)
 	resp, err := http.Get(requestURL)
 	if err != nil {
 		return false, fmt.Errorf("Failed to request %s: %w", requestURL, err)
