@@ -16,7 +16,7 @@ import (
 
 func FitEmote(emote *emote.EmoteData) error {
 	if emote.Animated {
-		resizedWebm, err := fitGif(emote.File)
+		resizedWebm, err := fitGIF(emote.File)
 		if err != nil {
 			return fmt.Errorf("Error resizing emote: %w", err)
 		}
@@ -24,7 +24,7 @@ func FitEmote(emote *emote.EmoteData) error {
 		return nil
 	}
 
-	resizedPng, err := fitPng(emote.File)
+	resizedPng, err := fitPNG(emote.File)
 	if err != nil {
 		return fmt.Errorf("Error resizing emote: %w", err)
 	}
@@ -33,7 +33,7 @@ func FitEmote(emote *emote.EmoteData) error {
 	return nil
 }
 
-func fitPng(input []byte) ([]byte, error) {
+func fitPNG(input []byte) ([]byte, error) {
 	img, _, err := image.Decode(bytes.NewReader(input))
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func fitPng(input []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func fitGif(input []byte) ([]byte, error) {
+func fitGIF(input []byte) ([]byte, error) {
 	tmpDir, err := os.MkdirTemp("", "gifconv")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
