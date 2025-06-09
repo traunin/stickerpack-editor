@@ -3,8 +3,9 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Traunin/stickerpack-editor/apps/api/telegram"
 	"net/http"
+
+	"github.com/Traunin/stickerpack-editor/apps/api/telegram"
 )
 
 type DeletePackRequest struct {
