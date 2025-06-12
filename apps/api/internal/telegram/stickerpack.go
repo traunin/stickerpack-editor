@@ -3,11 +3,14 @@ package telegram
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
@@ -44,6 +47,9 @@ func (pack StickerPack) Create() (string, error) {
 
 	writer.WriteField("user_id", pack.UserID)
 	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
+	if !isValidPackName(validName) {
+		return "", errors.New("Invalid stickerpack name")
+	}
 	writer.WriteField("name", validName)
 	writer.WriteField("title", pack.Title)
 
@@ -119,4 +125,14 @@ func (pack StickerPack) Delete() error {
 	}
 
 	return nil
+}
+
+func isValidPackName(name string) bool {
+	// English letters and digits, underscores
+	// <= 64 characters
+	// no consequtive underscores
+	re := regexp.MustCompile(`(?i)^[a-z][a-z0-9_]*$`)
+	return len(name) <= 64 &&
+		re.MatchString(name) &&
+		!strings.Contains(name, "__")
 }
