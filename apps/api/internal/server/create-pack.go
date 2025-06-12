@@ -14,7 +14,7 @@ type CreatePackRequest struct {
 	PackName string        `json:"pack_name"`
 	Title    string        `json:"title"`
 	Emotes   []emote.Emote `json:"emotes"`
-	UserID   string        `json:"userID"`
+	UserID   string        `json:"user_id"`
 }
 
 type CreatePackResponse struct {
