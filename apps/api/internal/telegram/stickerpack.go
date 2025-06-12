@@ -45,13 +45,19 @@ func (pack StickerPack) Create() (string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	writer.WriteField("user_id", pack.UserID)
+	if err := writer.WriteField("user_id", pack.UserID); err != nil {
+		return "", fmt.Errorf("failed to write user_id: %w", err)
+	}
 	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
 	if !isValidPackName(validName) {
-		return "", errors.New("Invalid stickerpack name")
+		return "", errors.New("invalid stickerpack name")
 	}
-	writer.WriteField("name", validName)
-	writer.WriteField("title", pack.Title)
+	if err := writer.WriteField("name", validName); err != nil {
+		return "", fmt.Errorf("failed to write name: %w", err)
+	}
+	if err := writer.WriteField("title", pack.Title); err != nil {
+		return "", fmt.Errorf("failed to write title: %w", err)
+	}
 
 	inputStickers := make([]inputSticker, len(pack.Stickers))
 	for i, sticker := range pack.Stickers {
