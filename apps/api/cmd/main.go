@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/server"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/api"
 )
 
 func init() {
@@ -19,7 +19,7 @@ func init() {
 
 func main() {
 	config := config.Load()
-	router := server.SetupRouter()
+	router := api.SetupRouter()
 
 	addr := ":" + config.Port
 	log.Printf("Server listening on http://localhost%s", addr)
