@@ -1,5 +1,6 @@
 <template>
   <div class="stickerpacks">
+    <AddStickerpack />
     <StickerpackPreview
       v-for="stickerpack in stickerpacks"
       :key="stickerpack.name"
@@ -10,6 +11,7 @@
 
 <script setup lang = "ts">
 import { ref } from 'vue'
+import AddStickerpack from '@/components/create-link.vue'
 import StickerpackPreview from '@/components/stickerpack-preview.vue'
 
 interface Stickerpack {

@@ -1,9 +1,5 @@
 <template>
-  <RouterLink
-    to="new"
-  >
-    Create a new pack
-  </RouterLink>
+  Add a new sticker
 </template>
 
 <script setup lang="ts">
@@ -11,5 +7,4 @@
 </script>
 
 <style>
-
 </style>
