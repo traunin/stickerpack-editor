@@ -1,10 +1,10 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import MyStickerpacks from '@/views/MyStickerpacks.vue'
+import StickerpackOverview from '@/views/stickerpack-overview.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/', component: MyStickerpacks },
+    { path: '/', component: StickerpackOverview },
   ],
 })
 

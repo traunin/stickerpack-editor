@@ -8,7 +8,7 @@
           class="link"
           active-class="active"
         >
-          <span>My stickerpacks</span>
+          <span>Stickerpack overview</span>
         </router-link>
       </li>
     </ul>
