@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang = "ts">
-import StickerpackPreview from '@/components/StickerpackPreview.vue';
+import StickerpackPreview from '@/components/stickerpack-preview.vue';
 import { ref } from 'vue'
 
 type Stickerpack = {

@@ -1,12 +1,13 @@
 <template>
-    <div class="container dark">
-        <navbar></navbar>
-        <router-view></router-view>
-    </div>
+  <div class="container dark">
+    <NavbarHeader />
+    <RouterView />
+  </div>
 </template>
 
 <script setup lang="ts">
-import Navbar from '@/components/Navbar.vue';
+import { RouterView } from 'vue-router'
+import NavbarHeader from '@/components/navbar-header.vue'
 </script>
 
 <style scoped>
