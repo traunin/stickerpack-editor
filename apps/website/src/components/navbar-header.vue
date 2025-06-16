@@ -4,7 +4,7 @@
     <ul>
       <li>
         <router-link
-          to="`/`"
+          to="/"
           class="link"
           active-class="active"
         >
