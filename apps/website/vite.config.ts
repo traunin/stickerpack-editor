@@ -1,20 +1,25 @@
 import path from 'path'
+import process from 'process'
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    vue(),
-  ],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd())
 
-  server: {
-    port: 80,
-  },
+  return {
+    plugins: [
+      vue(),
+    ],
 
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+    server: {
+      port: 80,
+      host: env.VITE_DOMAIN,
     },
-  },
+
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
+  }
 })
