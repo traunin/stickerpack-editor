@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-type Emote struct {
+type EmoteRaw struct {
 	SevenTVID string   `json:"seventv_id"`
 	Keywords  []string `json:"keywords"`
 	EmojiList []string `json:"emoji_list"`
@@ -28,7 +28,7 @@ var extensions = map[bool]string{
 	false: ".png",
 }
 
-func (e Emote) Download() (EmoteData, error) {
+func (e EmoteRaw) Download() (EmoteData, error) {
 	isAnimated, err := e.isAnimated()
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to get data for %s: %w", e.SevenTVID, err)
@@ -61,7 +61,7 @@ func (e Emote) Download() (EmoteData, error) {
 	return emoteData, nil
 }
 
-func (e Emote) isAnimated() (bool, error) {
+func (e EmoteRaw) isAnimated() (bool, error) {
 	// Currently using an old api, if it's deprecated...
 	// We'll have to deal with GraphQL...
 

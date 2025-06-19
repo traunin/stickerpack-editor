@@ -11,10 +11,10 @@ import (
 )
 
 type CreatePackRequest struct {
-	PackName string        `json:"pack_name"`
-	Title    string        `json:"title"`
-	Emotes   []emote.Emote `json:"emotes"`
-	UserID   string        `json:"user_id"`
+	PackName string           `json:"pack_name"`
+	Title    string           `json:"title"`
+	Emotes   []emote.EmoteRaw `json:"emotes"`
+	UserID   string           `json:"user_id"`
 }
 
 type CreatePackResponse struct {
