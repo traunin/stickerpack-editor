@@ -11,10 +11,10 @@ import (
 )
 
 type CreatePackRequest struct {
-	PackName string           `json:"pack_name"`
-	Title    string           `json:"title"`
-	Emotes   []emote.EmoteRaw `json:"emotes"`
-	UserID   string           `json:"user_id"`
+	PackName string             `json:"pack_name"`
+	Title    string             `json:"title"`
+	Emotes   []emote.EmoteInput `json:"emotes"`
+	UserID   string             `json:"user_id"`
 }
 
 type CreatePackResponse struct {
@@ -61,22 +61,28 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 
 	stickers := make([]telegram.Sticker, emoteCount)
 
-	for i, emote := range req.Emotes {
+	for i, input := range req.Emotes {
+		emote, err := input.ToEmote()
+		if err != nil {
+			log.Printf("invalid emote input %s: %v", emote, err)
+			continue
+		}
+
 		emoteData, err := emote.Download()
 		if err != nil {
-			log.Printf("failed downloading emote %s", emote.SevenTVID)
+			log.Printf("failed downloading emote %s", emote)
 			continue
 		}
 		err = resize.FitEmote(&emoteData)
 		if err != nil {
-			log.Printf("failed resizing emote %s: %v", emote.SevenTVID, err)
+			log.Printf("failed resizing emote %s: %v", emote, err)
 			continue
 		}
 		stickers[i] = telegram.Sticker{
 			Sticker:   emoteData.File,
 			Format:    format[emoteData.Animated],
-			Keywords:  emote.Keywords,
-			EmojiList: emote.EmojiList,
+			Keywords:  emote.Keywords(),
+			EmojiList: emote.EmojiList(),
 		}
 	}
 

@@ -1,16 +1,16 @@
 package emote
 
-import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-)
+import "fmt"
 
-type EmoteRaw struct {
-	SevenTVID string   `json:"seventv_id"`
-	Keywords  []string `json:"keywords"`
-	EmojiList []string `json:"emoji_list"`
+const maxKeywords = 20 - 5 // the tg limit is 20, we need 2, 5 is just to be safe
+const maxEmojis = 20
+
+type Emote interface {
+	Download() (EmoteData, error)
+	Keywords() []string
+	EmojiList() []string
+	ID() string
+	String() string
 }
 
 type EmoteData struct {
@@ -18,71 +18,27 @@ type EmoteData struct {
 	File     []byte
 }
 
-type SevenTVResponse struct {
-	Animated bool `json:"animated"`
+type EmoteInput struct {
+	Source    string   `json:"source"`
+	ID        string   `json:"id"`
+	Keywords  []string `json:"keywords"`
+	EmojiList []string `json:"emoji_list"`
 }
 
-// I'm assuming there's always a gif and a png
-var extensions = map[bool]string{
-	true:  ".gif",
-	false: ".png",
-}
-
-func (e EmoteRaw) Download() (EmoteData, error) {
-	isAnimated, err := e.isAnimated()
-	if err != nil {
-		return EmoteData{}, fmt.Errorf("failed to get data for %s: %w", e.SevenTVID, err)
+func (e EmoteInput) ToEmote() (Emote, error) {
+	if len(e.Keywords) > maxKeywords {
+		return nil, fmt.Errorf("max %d keywords is supported", maxKeywords)
 	}
 
-	extension := extensions[isAnimated]
-	emoteURL := fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.SevenTVID, extension)
-
-	resp, err := http.Get(emoteURL)
-	if err != nil {
-		return EmoteData{}, fmt.Errorf("failed to send download request for %s: %w", emoteURL, err)
+	if len(e.EmojiList) > maxKeywords {
+		return nil, fmt.Errorf("max %d emojis is supported", maxEmojis)
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return EmoteData{}, fmt.Errorf("download response invalid for %s: %d", emoteURL, resp.StatusCode)
+	metaKeywords := append([]string{}, e.Source, e.ID)
+	switch e.Source {
+	case "7tv":
+		return newSevenTVEmote(e.ID, metaKeywords, e.EmojiList)
+	default:
+		return nil, fmt.Errorf("unsupported source %s", e.Source)
 	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return EmoteData{}, fmt.Errorf("failed to read download for %s: %w", emoteURL, err)
-	}
-
-	emoteData := EmoteData{
-		File:     data,
-		Animated: isAnimated,
-	}
-
-	return emoteData, nil
-}
-
-func (e EmoteRaw) isAnimated() (bool, error) {
-	// Currently using an old api, if it's deprecated...
-	// We'll have to deal with GraphQL...
-
-	requestURL := fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.SevenTVID)
-	resp, err := http.Get(requestURL)
-	if err != nil {
-		return false, fmt.Errorf("failed to request %s: %w", requestURL, err)
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case 404:
-		return false, fmt.Errorf("emote does not exist")
-	case 400:
-		return false, fmt.Errorf("wrong ID")
-	}
-
-	var info SevenTVResponse
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return false, fmt.Errorf("failed to parse 7tv response for %s: %w", requestURL, err)
-	}
-
-	return info.Animated, nil
 }
