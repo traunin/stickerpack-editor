@@ -1,4 +1,4 @@
-import { ref, type Ref, watch, watchEffect } from 'vue'
+import { ref, type Ref, watch } from 'vue'
 
 export interface Emote {
   id: string
