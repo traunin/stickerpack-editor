@@ -31,5 +31,6 @@ import NavbarHeader from '@/components/navbar-header.vue'
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
+  min-height: 0;
 }
 </style>
