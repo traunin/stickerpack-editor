@@ -8,6 +8,7 @@
 .dark {
     --text: #ebedef;
     --background: #06090a;
+    --input: #000;
     --primary: #1838da;
     --secondary: #134b70;
     --accent: #44a0e1;
@@ -16,6 +17,7 @@
 .light {
     --text: #06090a;
     --background: #ebedef;
+    --input: #fff;
     --primary: #1838da;
     --secondary: #134b70;
     --accent: #44a0e1;
