@@ -84,6 +84,7 @@ export function useEmoteSearch(query: Ref<string>, pageSize: number) {
   watch(query, async (newQuery) => {
     page.value = 1
     error.value = null
+    emotes.value = []
 
     try {
       const { items, pageCount } = await fetchEmotes(newQuery, 1, pageSize)
@@ -91,20 +92,19 @@ export function useEmoteSearch(query: Ref<string>, pageSize: number) {
       maxPages.value = pageCount
     } catch (e: unknown) {
       error.value = String(e)
-      emotes.value = []
       maxPages.value = 1
     }
   }, { immediate: true })
 
   watch([query, page], async ([q, p]) => {
     error.value = null
+    emotes.value = []
 
     try {
       const { items } = await fetchEmotes(q, p, pageSize)
       emotes.value = items
     } catch (e: unknown) {
       error.value = String(e)
-      emotes.value = []
     }
   })
 

@@ -56,8 +56,8 @@ const debounceQuery = useDebounce(query, 300)
 
 const { emotes, error, page, next, prev, maxPages } = useEmoteSearch(debounceQuery, 10)
 const pageSize = 10
-const foundStickers = computed(() => emotes.value?.length)
-const loading = computed(() => !foundStickers.value && error == null)
+const foundStickers = computed(() => emotes.value?.length !== 0)
+const loading = computed(() => !foundStickers.value && error.value == null)
 
 function selectEmote(emote: Emote) {
   emit('emote-selected', emote)
