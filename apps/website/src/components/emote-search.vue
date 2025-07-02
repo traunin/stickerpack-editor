@@ -7,8 +7,8 @@
         placeholder="Search 7tv emotes..."
       >
     </div>
-    <div v-if="loading" class="results">
-      Searching...
+    <div v-if="loading" class="results loading">
+      <LoadingAnimation />
     </div>
 
     <div v-else-if="error" class="results">
@@ -46,6 +46,7 @@ import { computed, ref } from 'vue'
 import SearchResult from '@/components/search-result.vue'
 import type { Emote } from '@/composables/use-emote-search.ts'
 import { useEmoteSearch } from '@/composables/use-emote-search.ts'
+import LoadingAnimation from './loading-animation.vue'
 
 const emit = defineEmits<{
   (e: 'emote-selected', emote: Emote): void
@@ -111,5 +112,9 @@ function selectEmote(emote: Emote) {
 .text {
   text-align: center;
   align-self: center;
+}
+
+.loading {
+  align-items: center
 }
 </style>
