@@ -105,6 +105,7 @@ function selectEmote(emote: Emote) {
   background: var(--primary);
   cursor: pointer;
   border: none;
+  color: var(--text);
 }
 
 .text {
