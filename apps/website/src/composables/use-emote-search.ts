@@ -41,9 +41,6 @@ async function fetchEmotes(query: string, page = 1, pageSize = 10) {
                 items {
                   id
                   defaultName
-                  images {
-                    url
-                  }
                 }
                 pageCount
                 totalCount
