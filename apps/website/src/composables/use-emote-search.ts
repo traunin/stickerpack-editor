@@ -3,7 +3,8 @@ import { ref, type Ref, watch } from 'vue'
 export interface Emote {
   id: string
   name: string
-  url: string
+  preview: string
+  full: string
 }
 
 interface EmoteSearchResponse {
@@ -70,8 +71,8 @@ async function fetchEmotes(query: string, page = 1, pageSize = 10) {
   return { items: items.map((e): Emote => ({
     id: e.id,
     name: e.defaultName,
-    url: `https://cdn.7tv.app/emote/${e.id}/2x.webp`,
-    // url: `${e.images[0]?.url ?? ''}`,
+    preview: `https://cdn.7tv.app/emote/${e.id}/2x.webp`,
+    full: `https://cdn.7tv.app/emote/${e.id}/4x.webp`,
   })), pageCount: emotes.totalCount }
 }
 

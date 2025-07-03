@@ -1,6 +1,6 @@
 <template>
   <div class="emote">
-    <img :src="emote.url" :alt="emote.name">
+    <img :src="emote.preview" :alt="emote.name">
     <div class="name">
       {{ emote.name }}
     </div>
