@@ -43,10 +43,10 @@
 <script setup lang="ts">
 import { useDebounce } from '@vueuse/core'
 import { computed, ref } from 'vue'
+import LoadingAnimation from '@/components/loading-animation.vue'
 import SearchResult from '@/components/search-result.vue'
 import type { Emote } from '@/composables/use-emote-search.ts'
 import { useEmoteSearch } from '@/composables/use-emote-search.ts'
-import LoadingAnimation from './loading-animation.vue'
 
 const emit = defineEmits<{
   (e: 'emote-selected', emote: Emote): void
