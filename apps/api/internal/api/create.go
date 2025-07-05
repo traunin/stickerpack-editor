@@ -2,19 +2,22 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/resize"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
 type CreatePackRequest struct {
-	PackName string             `json:"pack_name"`
-	Title    string             `json:"title"`
-	Emotes   []emote.EmoteInput `json:"emotes"`
-	UserID   string             `json:"user_id"`
+	PackName     string             `json:"pack_name"`
+	Title        string             `json:"title"`
+	Emotes       []emote.EmoteInput `json:"emotes"`
+	UserID       string             `json:"user_id"`
+	UseWatermark bool               `json:"use_watermark"`
 }
 
 type CreatePackResponse struct {
@@ -86,10 +89,17 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var title string
+	if req.UseWatermark {
+		title = fmt.Sprintf("%s by @%s", req.Title, config.Load().BotName)
+	} else {
+		title = req.Title
+	}
+
 	pack := telegram.StickerPack{
 		UserID:   req.UserID,
 		Name:     req.PackName,
-		Title:    req.Title,
+		Title:    title,
 		Stickers: stickers,
 	}
 
