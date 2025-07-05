@@ -75,7 +75,9 @@ func fitGIF(input []byte) ([]byte, error) {
 	// TODO cut vs speed up? file size checking?
 	cmd := exec.Command("ffmpeg",
 		"-i", inputPath,
-		"-filter_complex", "[0:v]trim=duration=3,setpts=PTS-STARTPTS,scale=512:-1",
+		"-t", "3", // 3 seconds length
+		"-r", "30", // 30 fps
+		"-vf", "scale=512:-1", // fit to 512px size
 		"-c:v", "libvpx-vp9",
 		"-pix_fmt", "yuva420p",
 		"-f", "webm",
