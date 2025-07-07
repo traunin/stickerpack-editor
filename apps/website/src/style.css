@@ -12,6 +12,7 @@
     --primary: #1838da;
     --secondary: #134b70;
     --accent: #44a0e1;
+    --panel: rgba(255, 255, 255, 0.06);
 }
 
 .light {
@@ -21,4 +22,5 @@
     --primary: #2747e7;
     --secondary: #8ec6ec;
     --accent: #1f7bbd;
+    --panel: rgba(0, 0, 0, 0.06);
 }
