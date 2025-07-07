@@ -109,6 +109,9 @@ function selectEmote(emote: Emote) {
   cursor: pointer;
   border: none;
   color: var(--text);
+  height: 100%;
+  line-height: 0.9em;
+  aspect-ratio: 1/1;
 }
 
 .text {
