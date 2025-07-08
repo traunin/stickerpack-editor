@@ -77,7 +77,7 @@ func fitGIF(input []byte) ([]byte, error) {
 		"-i", inputPath,
 		"-t", "3", // 3 seconds length
 		"-r", "30", // 30 fps
-		"-vf", "scale=512:-1", // fit to 512px size
+		"-vf", "scale='if(gt(a,1),512,-1)':'if(gt(a,1),-1,512)'", // fit to 512px size
 		"-c:v", "libvpx-vp9",
 		"-pix_fmt", "yuva420p",
 		"-f", "webm",
