@@ -82,9 +82,11 @@ export function useEmoteSearch(query: Ref<string>, pageSize: number) {
 
   watch([query, page], async ([q, p]) => {
     if (q !== lastQuery) {
-      page.value = 1
       lastQuery = q
-      return // watch triggered by setting page to 1
+      if (page.value !== 1) {
+        page.value = 1
+        return // watch triggered by setting page to 1
+      }
     }
 
     error.value = null
