@@ -70,7 +70,6 @@ function selectEmote(emote: Emote) {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  margin: 20px;
   flex: 1;
   min-height: 0;
   background: var(--panel);
