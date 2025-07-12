@@ -3,30 +3,24 @@
     <h1>Stickerpack editor</h1>
     <ul>
       <li>
-        <router-link
+        <RouterLink
           to="/"
           class="link"
           active-class="active"
         >
           <span>Stickerpack overview</span>
-        </router-link>
+        </RouterLink>
       </li>
     </ul>
 
     <div class="tg-auth">
-      <TelegramLogin :on-auth="handleAuth" />
+      <TelegramLogin />
     </div>
   </nav>
 </template>
 
 <script setup lang="ts">
-import type { User } from '@/components/telegram-login.vue'
 import TelegramLogin from '@/components/telegram-login.vue'
-
-function handleAuth(user: User) {
-  console.log(user)
-  // alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
-}
 </script>
 
 <style scoped>
