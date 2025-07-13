@@ -70,7 +70,7 @@ async function fetchEmotes(query: string, page = 1, pageSize = 10) {
     name: e.defaultName,
     preview: `https://cdn.7tv.app/emote/${e.id}/2x.webp`,
     full: `https://cdn.7tv.app/emote/${e.id}/4x.webp`,
-  })), pageCount: emotes.totalCount }
+  })), pageCount: emotes.pageCount }
 }
 
 export function useEmoteSearch(query: Ref<string>, pageSize: number) {
