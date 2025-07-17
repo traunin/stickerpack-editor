@@ -75,7 +75,7 @@ button {
   align-self: stretch;
   border: none;
   cursor: pointer;
-  padding: 0 5px;
+  padding: 0 10px;
   border-radius: 0 10px 10px 0;
 }
 </style>
