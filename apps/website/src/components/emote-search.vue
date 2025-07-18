@@ -25,7 +25,7 @@
     </div>
 
     <div class="page-controls">
-      <button :disabled="page === 0" @click="prev">
+      <button :disabled="!hasPrevPage" @click="prev">
         &lt;
       </button>
       <span class="text">
@@ -33,7 +33,7 @@
         <span>{{ page }}</span>
         <span>..{{ maxPages }}</span>
       </span>
-      <button :disabled="emotes != null && (emotes.length < pageSize)" @click="next">
+      <button :disabled="!hasNextPage" @click="next">
         &gt;
       </button>
     </div>
@@ -55,10 +55,13 @@ const emit = defineEmits<{
 const query = ref('')
 const debounceQuery = useDebounce(query, 300)
 
-const { emotes, error, page, next, prev, maxPages } = useEmoteSearch(debounceQuery, 10)
 const pageSize = 10
+const { emotes, error, page, next, prev, maxPages } = useEmoteSearch(debounceQuery, 10)
+
 const foundStickers = computed(() => emotes.value?.length !== 0)
 const loading = computed(() => !foundStickers.value && error.value == null)
+const hasPrevPage = computed(() => (debounceQuery.value === query.value) && page.value > 1)
+const hasNextPage = computed(() => (debounceQuery.value === query.value) && page.value < maxPages.value)
 
 function selectEmote(emote: Emote) {
   emit('emote-selected', emote)
@@ -120,5 +123,9 @@ function selectEmote(emote: Emote) {
 
 .loading {
   align-items: center
+}
+
+button:disabled {
+  color: red;
 }
 </style>
