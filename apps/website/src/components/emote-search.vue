@@ -56,7 +56,7 @@ const query = ref('')
 const debounceQuery = useDebounce(query, 300)
 
 const pageSize = 10
-const { emotes, error, page, next, prev, maxPages } = useEmoteSearch(debounceQuery, 10)
+const { emotes, error, page, next, prev, maxPages } = useEmoteSearch(debounceQuery, pageSize)
 
 const foundStickers = computed(() => emotes.value?.length !== 0)
 const loading = computed(() => !foundStickers.value && error.value == null)
