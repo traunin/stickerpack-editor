@@ -2,10 +2,12 @@ package config
 
 import (
 	"log"
-	"os"
 	"sync"
 
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/env"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type Config struct {
@@ -13,6 +15,7 @@ type Config struct {
 	Port          string
 	BotName       string
 	DomainCORS    string
+	DBConn        *db.Postgres
 }
 
 var (
@@ -27,29 +30,13 @@ func Load() *Config {
 		}
 
 		cfg = &Config{
-			Port:          fallbackEnv("PORT", "8080"),
-			DomainCORS:    fallbackEnv("DOMAIN_CORS", "*"),
-			TelegramToken: mustEnv("TELEGRAM_TOKEN"),
-			BotName:       mustEnv("BOT_NAME"),
+			Port:          env.Fallback("PORT", "8080"),
+			DomainCORS:    env.Fallback("DOMAIN_CORS", "*"),
+			TelegramToken: env.Must("TELEGRAM_TOKEN"),
+			BotName:       env.Must("BOT_NAME"),
+			DBConn:        db.NewPostgres(),
 		}
 	})
 
 	return cfg
-}
-
-func mustEnv(key string) string {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		log.Fatalf("missing required %s\n", key)
-	}
-
-	return val
-}
-
-func fallbackEnv(key, fallback string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
-	}
-
-	return fallback
 }
