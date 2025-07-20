@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -30,35 +31,13 @@ var format = map[bool]string{
 }
 
 func createPackHandler(w http.ResponseWriter, r *http.Request) {
-	var req CreatePackRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON schema", http.StatusBadRequest)
+	req, err := parseRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if req.PackName == "" {
-		http.Error(w, "stickerpack name missing", http.StatusBadRequest)
-		return
-	}
-
-	if req.Title == "" {
-		http.Error(w, "stickerpack title missing", http.StatusBadRequest)
-		return
-	}
-
-	if req.UserID == "" {
-		http.Error(w, "user ID missing", http.StatusBadRequest)
-		return
-	}
-
-	emoteCount := len(req.Emotes)
-	if emoteCount == 0 {
-		http.Error(w, "no emotes in stickerpack", http.StatusBadRequest)
-		return
-	}
-
-	stickers := make([]telegram.Sticker, emoteCount)
-
+	stickers := make([]telegram.Sticker, len(req.Emotes))
 	for i, input := range req.Emotes {
 		emote, err := input.ToEmote()
 		if err != nil {
@@ -104,9 +83,35 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = config.Load().DBConn.AddStickerpack(req.UserID, title, false)
-		if err != nil {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	json.NewEncoder(w).Encode(CreatePackResponse{PackURL: url})
+}
+
+func parseRequest(r *http.Request) (*CreatePackRequest, error) {
+	var req CreatePackRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, errors.New("invalid JSON schema")
+	}
+
+	if req.PackName == "" {
+		return nil, errors.New("stickerpack name missing")
+	}
+
+	if req.Title == "" {
+		return nil, errors.New("stickerpack title missing")
+	}
+
+	if req.UserID == "" {
+		return nil, errors.New("user ID missing")
+	}
+
+	emoteCount := len(req.Emotes)
+	if emoteCount == 0 {
+		return nil, errors.New("no emotes in stickerpack")
+	}
+
+	return &req, nil
 }
