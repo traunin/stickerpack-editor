@@ -18,11 +18,6 @@ type DeletePackResponse struct {
 }
 
 func deletePackHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "method is not DELETE", http.StatusBadRequest)
-		return
-	}
-
 	var req DeletePackRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid JSON schema", http.StatusBadRequest)
