@@ -15,6 +15,7 @@ type Config struct {
 	Port          string
 	BotName       string
 	DomainCORS    string
+	SecretKey     string
 	DBConn        *db.Postgres
 }
 
@@ -34,6 +35,7 @@ func Load() *Config {
 			DomainCORS:    env.Fallback("DOMAIN_CORS", "*"),
 			TelegramToken: env.Must("TELEGRAM_TOKEN"),
 			BotName:       env.Must("BOT_NAME"),
+			SecretKey:     env.Must("SECRET_KEY"),
 			DBConn:        db.NewPostgres(),
 		}
 	})
