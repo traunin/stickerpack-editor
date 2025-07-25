@@ -1,14 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-
-export interface User {
-  auth_date: number
-  first_name: string
-  hash: string
-  id: number
-  photo_url: string
-  username: string
-}
+import { isValidAuth, type User } from '@/api/auth'
 
 export const useTgAuthStore = defineStore('use-tg-auth', () => {
   const isLoggedIn = ref(false)
@@ -17,11 +9,13 @@ export const useTgAuthStore = defineStore('use-tg-auth', () => {
   const username = ref('')
   const hash = ref('')
 
-  function logIn(user: User) {
-    isLoggedIn.value = true
-    id.value = user.id
-    username.value = user.username
-    hash.value = user.hash
+  async function logIn(user: User) {
+    if (await isValidAuth(user)) {
+      isLoggedIn.value = true
+      id.value = user.id
+      username.value = user.username
+      hash.value = user.hash
+    }
   }
 
   function logOut() {

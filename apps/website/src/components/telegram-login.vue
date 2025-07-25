@@ -18,7 +18,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { type User, useTgAuthStore } from '@/stores/use-tg-auth'
+import type { User } from '@/api/auth'
+import { useTgAuthStore } from '@/stores/use-tg-auth'
 
 declare global {
   interface Window {
