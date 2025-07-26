@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
@@ -23,7 +24,7 @@ type Sticker struct {
 }
 
 type StickerPack struct {
-	UserID   string
+	UserID   int64
 	Name     string
 	Title    string
 	Stickers []Sticker
@@ -45,7 +46,8 @@ func (pack StickerPack) Create() (string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	if err := writer.WriteField("user_id", pack.UserID); err != nil {
+	IDstring := strconv.FormatInt(pack.UserID, 10)
+	if err := writer.WriteField("user_id", IDstring); err != nil {
 		return "", fmt.Errorf("failed to write user_id: %w", err)
 	}
 	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)

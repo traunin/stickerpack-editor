@@ -17,7 +17,7 @@ type CreatePackRequest struct {
 	PackName     string             `json:"pack_name"`
 	Title        string             `json:"title"`
 	Emotes       []emote.EmoteInput `json:"emotes"`
-	UserID       string             `json:"user_id"`
+	UserID       int64              `json:"user_id"`
 	UseWatermark bool               `json:"use_watermark"`
 }
 
@@ -102,10 +102,6 @@ func parseRequest(r *http.Request) (*CreatePackRequest, error) {
 
 	if req.Title == "" {
 		return nil, errors.New("stickerpack title missing")
-	}
-
-	if req.UserID == "" {
-		return nil, errors.New("user ID missing")
 	}
 
 	emoteCount := len(req.Emotes)
