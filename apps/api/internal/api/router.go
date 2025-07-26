@@ -1,15 +1,18 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
 const (
 	packsRoute = "/packs"
 	packRoute  = "/packs/"
+	authRoute  = "/auth"
 )
 
 func withCORS(h http.Handler) http.Handler {
@@ -33,6 +36,7 @@ func SetupRouter() http.Handler {
 	mux := http.NewServeMux()
 
 	api := http.NewServeMux()
+	api.HandleFunc(authRoute, authHandler)
 	api.HandleFunc(packsRoute, packsHandler)
 	api.HandleFunc(packRoute, packHandler)
 
@@ -56,7 +60,7 @@ func packHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing pack ID", http.StatusBadRequest)
 		return
 	}
-	
+
 	// TODO delete packs with id
 	switch r.Method {
 	case http.MethodDelete:
@@ -64,4 +68,31 @@ func packHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func authHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	req, err := telegram.ParseAuth(r)
+	if err != nil {
+		http.Error(w, "Failed to authenticate", http.StatusBadRequest)
+		return
+	}
+
+	jwt, err := sign(req.ID)
+	if err != nil {
+		http.Error(w, "Failed to sign JWT", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"token": jwt,
+	})
+	w.WriteHeader(http.StatusOK)
 }
