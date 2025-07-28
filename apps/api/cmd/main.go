@@ -21,7 +21,7 @@ func main() {
 	config := config.Load()
 	router := api.SetupRouter()
 
-	addr := ":" + config.Port
+	addr := ":" + config.Port()
 	log.Printf("Server listening on http://localhost%s", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatal(err)

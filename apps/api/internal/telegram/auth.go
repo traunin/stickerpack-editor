@@ -41,7 +41,7 @@ func validateRequest(req *AuthRequest) error {
 	// https://core.telegram.org/widgets/login#checking-authorization
 	dataCheckString := buildCheckString(req)
 
-	secret := sha256.Sum256([]byte(config.Load().TelegramToken))
+	secret := sha256.Sum256([]byte(config.Load().TelegramToken()))
 	mac := hmac.New(sha256.New, secret[:])
 	mac.Write([]byte(dataCheckString))
 

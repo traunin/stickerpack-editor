@@ -82,7 +82,7 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
 
-	err = config.Load().DBConn.AddStickerpack(req.UserID, title, false)
+	err = config.Load().DBConn().AddStickerpack(req.UserID, title, false)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -11,18 +11,25 @@ import (
 )
 
 type Config struct {
-	TelegramToken string
-	Port          string
-	BotName       string
-	DomainCORS    string
-	SecretKey     string
-	DBConn        *db.Postgres
+	telegramToken string
+	port          string
+	botName       string
+	domainCORS    string
+	secretKey     string
+	dbConn        *db.Postgres
 }
 
 var (
 	cfg  *Config
 	once sync.Once
 )
+
+func (c *Config) TelegramToken() string { return c.telegramToken }
+func (c *Config) Port() string          { return c.port }
+func (c *Config) BotName() string       { return c.botName }
+func (c *Config) DomainCORS() string    { return c.domainCORS }
+func (c *Config) SecretKey() string     { return c.secretKey }
+func (c *Config) DBConn() *db.Postgres  { return c.dbConn }
 
 func Load() *Config {
 	once.Do(func() {
@@ -31,12 +38,12 @@ func Load() *Config {
 		}
 
 		cfg = &Config{
-			Port:          env.Fallback("PORT", "8080"),
-			DomainCORS:    env.Fallback("DOMAIN_CORS", "*"),
-			TelegramToken: env.Must("TELEGRAM_TOKEN"),
-			BotName:       env.Must("BOT_NAME"),
-			SecretKey:     env.Must("SECRET_KEY"),
-			DBConn:        db.NewPostgres(),
+			port:          env.Fallback("PORT", "8080"),
+			domainCORS:    env.Fallback("DOMAIN_CORS", "*"),
+			telegramToken: env.Must("TELEGRAM_TOKEN"),
+			botName:       env.Must("BOT_NAME"),
+			secretKey:     env.Must("SECRET_KEY"),
+			dbConn:        db.NewPostgres(),
 		}
 	})
 
