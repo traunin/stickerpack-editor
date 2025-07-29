@@ -65,7 +65,7 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 
 	var title string
 	if req.UseWatermark {
-		title = fmt.Sprintf("%s by @%s", req.Title, config.Load().BotName)
+		title = fmt.Sprintf("%s by @%s", req.Title, config.Load().BotName())
 	} else {
 		title = req.Title
 	}
