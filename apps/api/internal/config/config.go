@@ -37,12 +37,16 @@ func Load() *Config {
 			log.Println("no local .env found")
 		}
 
+		secretKey := env.Must("SECRET_KEY")
+		if len(secretKey) < 32 {
+			log.Fatalln("SECRET_KEY must be >= 32 characters long")
+		}
 		cfg = &Config{
 			port:          env.Fallback("PORT", "8080"),
 			domainCORS:    env.Fallback("DOMAIN_CORS", "*"),
 			telegramToken: env.Must("TELEGRAM_TOKEN"),
 			botName:       env.Must("BOT_NAME"),
-			secretKey:     env.Must("SECRET_KEY"),
+			secretKey:     secretKey,
 			dbConn:        db.NewPostgres(),
 		}
 	})
