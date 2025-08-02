@@ -12,6 +12,7 @@ export interface User {
 export async function isValidAuth(user: User) {
   const res = await fetch(`${API_URL}/auth`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },
