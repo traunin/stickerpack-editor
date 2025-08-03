@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -10,17 +9,24 @@ import (
 )
 
 const (
+	baseRoute  = "/api"
 	packsRoute = "/packs"
 	packRoute  = "/packs/"
 	authRoute  = "/auth"
 )
 
+var noAuthRoutes = []NoAuthRoute{
+	{Path: baseRoute + authRoute, Method: http.MethodPost, PrefixMatch: false},
+	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
+}
+
 func withCORS(h http.Handler) http.Handler {
-	domain := config.Load().DomainCORS
+	domain := config.Load().Domain()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", domain)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		// preflight
 		if r.Method == http.MethodOptions {
@@ -39,16 +45,19 @@ func SetupRouter() http.Handler {
 	api.HandleFunc(authRoute, authHandler)
 	api.HandleFunc(packsRoute, packsHandler)
 	api.HandleFunc(packRoute, packHandler)
+	mux.Handle(baseRoute+"/", http.StripPrefix(baseRoute, api))
 
-	mux.Handle("/api/", http.StripPrefix("/api", api))
-
-	return withCORS(mux)
+	auth := JWTMiddleware(noAuthRoutes, mux)
+	cors := withCORS(auth)
+	return cors
 }
 
 func packsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		createPackHandler(w, r)
+	case http.MethodGet:
+		getPacksHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -84,15 +93,21 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwt, err := sign(req.ID)
+	jwt, err := SignID(req.ID)
 	if err != nil {
 		http.Error(w, "Failed to sign JWT", http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"token": jwt,
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    jwt,
+		Path:     "/",
+		Domain: config.Load().Domain(),
+		HttpOnly: true,
+		// Uncomment in prod?
+		// Secure:   true,
+		// SameSite: http.SameSiteLaxMode,
 	})
 	w.WriteHeader(http.StatusOK)
 }
