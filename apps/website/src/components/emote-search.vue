@@ -114,6 +114,8 @@ function selectEmote(emote: Emote) {
   height: 100%;
   line-height: 0.9em;
   aspect-ratio: 1/1;
+  display: flex;
+  align-items: center;
 }
 
 .text {
