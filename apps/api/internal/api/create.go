@@ -14,11 +14,12 @@ import (
 )
 
 type CreatePackRequest struct {
+	UserID       int64
 	PackName     string             `json:"pack_name"`
 	Title        string             `json:"title"`
 	Emotes       []emote.EmoteInput `json:"emotes"`
-	UserID       int64              `json:"user_id"`
-	UseWatermark bool               `json:"use_watermark"`
+	IsPublic     bool               `json:"is_public"`
+	HasWatermark bool               `json:"has_watermark"`
 }
 
 type CreatePackResponse struct {
@@ -31,9 +32,9 @@ var format = map[bool]string{
 }
 
 func createPackHandler(w http.ResponseWriter, r *http.Request) {
-	req, err := parseRequest(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	req, mr := parseCreatePackRequest(w, r)
+	if mr != nil {
+		http.Error(w, mr.Error(), mr.status)
 		return
 	}
 
@@ -63,9 +64,10 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	cfg := config.Load()
 	var title string
-	if req.UseWatermark {
-		title = fmt.Sprintf("%s by @%s", req.Title, config.Load().BotName())
+	if req.HasWatermark {
+		title = fmt.Sprintf("%s by @%s", req.Title, cfg.BotName())
 	} else {
 		title = req.Title
 	}
@@ -80,34 +82,72 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	url, err := pack.Create()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
 	}
 
-	err = config.Load().DBConn().AddStickerpack(req.UserID, title, false)
+	err = cfg.DBConn().AddStickerpack(req.UserID, title, req.IsPublic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	json.NewEncoder(w).Encode(CreatePackResponse{PackURL: url})
 }
 
-func parseRequest(r *http.Request) (*CreatePackRequest, error) {
-	var req CreatePackRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, errors.New("invalid JSON schema")
+func parseCreatePackRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+) (
+	req *CreatePackRequest,
+	mr *malformedRequest,
+) {
+	err := DecodeJSONBody(w, r, &req)
+	if err != nil {
+		if errors.As(err, &mr) {
+			return
+		}
+		log.Printf("decoding error in parseGetPacksRequest: %v", err)
+		mr = &malformedRequest{
+			status: http.StatusInternalServerError,
+			msg:    "unable to decode request",
+		}
+		return
 	}
 
 	if req.PackName == "" {
-		return nil, errors.New("stickerpack name missing")
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    "pack name is empty",
+		}
+		return
 	}
 
 	if req.Title == "" {
-		return nil, errors.New("stickerpack title missing")
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    "pack title is empty",
+		}
+		return
 	}
 
 	emoteCount := len(req.Emotes)
 	if emoteCount == 0 {
-		return nil, errors.New("no emotes in stickerpack")
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    "no emotes in pack",
+		}
+		return
 	}
 
-	return &req, nil
+	userID, ctxErr := UserIDFromContext(r)
+	if ctxErr != nil {
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    ctxErr.Error(),
+		}
+		return
+	}
+	req.UserID = userID
+
+	return
 }
