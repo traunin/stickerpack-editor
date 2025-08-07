@@ -39,6 +39,13 @@ func withCORS(h http.Handler) http.Handler {
 	})
 }
 
+func withContentTypeJSON(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		h.ServeHTTP(w, r)
+	})
+}
+
 func SetupRouter() http.Handler {
 	mux := http.NewServeMux()
 
@@ -49,7 +56,8 @@ func SetupRouter() http.Handler {
 	mux.Handle(baseRoute+"/", http.StripPrefix(baseRoute, api))
 
 	auth := JWTMiddleware(noAuthRoutes, mux)
-	cors := withCORS(auth)
+	contentType := withContentTypeJSON(auth)
+	cors := withCORS(contentType)
 	return cors
 }
 
