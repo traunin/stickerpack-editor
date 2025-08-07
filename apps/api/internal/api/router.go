@@ -17,6 +17,7 @@ const (
 
 var noAuthRoutes = []NoAuthRoute{
 	{Path: baseRoute + authRoute, Method: http.MethodPost, PrefixMatch: false},
+	{Path: baseRoute + packsRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
 }
 
