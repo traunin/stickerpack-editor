@@ -99,11 +99,15 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// not sure how to store the domain yet
+	// TODO FIX
+	domain := config.Load().Domain()
+	domain = strings.TrimPrefix(domain, "http://")
 	http.SetCookie(w, &http.Cookie{
 		Name:     "jwt",
 		Value:    jwt,
 		Path:     "/",
-		Domain: config.Load().Domain(),
+		Domain: domain,
 		HttpOnly: true,
 		// Uncomment in prod?
 		// Secure:   true,
