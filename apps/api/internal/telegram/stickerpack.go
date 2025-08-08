@@ -39,8 +39,8 @@ type inputSticker struct {
 
 func (pack StickerPack) Create() (string, error) {
 	config := config.Load()
-	botToken := config.TelegramToken
-	botName := config.BotName
+	botToken := config.TelegramToken()
+	botName := config.BotName()
 	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/createNewStickerSet", botToken)
 
 	var buf bytes.Buffer
@@ -113,8 +113,8 @@ func (pack StickerPack) Create() (string, error) {
 
 func (pack StickerPack) Delete() error {
 	config := config.Load()
-	botToken := config.TelegramToken
-	botName := config.BotName
+	botToken := config.TelegramToken()
+	botName := config.BotName()
 	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/deleteStickerSet", botToken)
 
 	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
