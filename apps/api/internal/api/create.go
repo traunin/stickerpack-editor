@@ -33,20 +33,15 @@ var format = map[bool]string{
 
 func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string {
 	if hasWatermark {
-		return fmt.Sprintf("%s by %s", title, cfg.BotName())
+		return fmt.Sprintf("%s by @%s", title, cfg.BotName())
 	}
 	return title
 }
 
-func createPackHandler(w http.ResponseWriter, r *http.Request) {
-	req, mr := parseCreatePackRequest(w, r)
-	if mr != nil {
-		http.Error(w, mr.Error(), mr.status)
-		return
-	}
-
-	stickers := make([]telegram.Sticker, len(req.Emotes))
-	for i, input := range req.Emotes {
+func emotesToStickers(emotes []emote.EmoteInput) []telegram.Sticker {
+	// TODO handle errors
+	stickers := make([]telegram.Sticker, 0, len(emotes))
+	for i, input := range emotes {
 		emote, err := input.ToEmote()
 		if err != nil {
 			log.Printf("invalid emote input %s: %v", emote, err)
@@ -70,6 +65,18 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 			EmojiList: emote.EmojiList(),
 		}
 	}
+	
+	return stickers
+}
+
+func createPackHandler(w http.ResponseWriter, r *http.Request) {
+	req, mr := parseCreatePackRequest(w, r)
+	if mr != nil {
+		http.Error(w, mr.Error(), mr.status)
+		return
+	}
+
+	stickers := emotesToStickers(req.Emotes)
 
 	cfg := config.Load()
 	title := applyWatermark(req.Title, req.HasWatermark, cfg)
