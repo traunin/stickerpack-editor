@@ -31,6 +31,13 @@ var format = map[bool]string{
 	false: "static",
 }
 
+func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string {
+	if hasWatermark {
+		return fmt.Sprintf("%s by %s", title, cfg.BotName())
+	}
+	return title
+}
+
 func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	req, mr := parseCreatePackRequest(w, r)
 	if mr != nil {
@@ -65,12 +72,7 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := config.Load()
-	var title string
-	if req.HasWatermark {
-		title = fmt.Sprintf("%s by @%s", req.Title, cfg.BotName())
-	} else {
-		title = req.Title
-	}
+	title := applyWatermark(req.Title, req.HasWatermark, cfg)
 
 	pack := telegram.StickerPack{
 		UserID:   req.UserID,
