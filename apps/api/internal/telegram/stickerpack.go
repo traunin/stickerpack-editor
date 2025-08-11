@@ -38,11 +38,6 @@ type inputSticker struct {
 }
 
 func (pack StickerPack) Create() (string, error) {
-	config := config.Load()
-	botToken := config.TelegramToken()
-	botName := config.BotName()
-	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/createNewStickerSet", botToken)
-
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
@@ -50,6 +45,7 @@ func (pack StickerPack) Create() (string, error) {
 	if err := writer.WriteField("user_id", IDstring); err != nil {
 		return "", fmt.Errorf("failed to write user_id: %w", err)
 	}
+	botName := config.Load().BotName()
 	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
 	if !isValidPackName(validName) {
 		return "", errors.New("invalid stickerpack name")
@@ -95,7 +91,8 @@ func (pack StickerPack) Create() (string, error) {
 		return "", fmt.Errorf("failed to close writer: %w", err)
 	}
 
-	resp, err := http.Post(requestURL, writer.FormDataContentType(), &buf)
+	reqURL := requestURL("createNewStickerset")
+	resp, err := http.Post(reqURL, writer.FormDataContentType(), &buf)
 	if err != nil {
 		return "", fmt.Errorf("createNewStickerSet failed: %w", err)
 	}
@@ -113,13 +110,11 @@ func (pack StickerPack) Create() (string, error) {
 
 func (pack StickerPack) Delete() error {
 	config := config.Load()
-	botToken := config.TelegramToken()
 	botName := config.BotName()
-	requestURL := fmt.Sprintf("https://api.telegram.org/bot%s/deleteStickerSet", botToken)
-
 	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
 
-	resp, err := http.PostForm(requestURL, url.Values{
+	reqURL := requestURL("deleteStickerSet")
+	resp, err := http.PostForm(reqURL, url.Values{
 		"name": {validName},
 	})
 	if err != nil {
@@ -133,6 +128,11 @@ func (pack StickerPack) Delete() error {
 	}
 
 	return nil
+}
+
+func requestURL(method string) string {
+	token := config.Load().TelegramToken()
+	return fmt.Sprintf("https://api.telegram.org/bot%s/%s", token, method)
 }
 
 func isValidPackName(name string) bool {
