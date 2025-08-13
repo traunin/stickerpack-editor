@@ -16,7 +16,7 @@ import (
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
 
-type Sticker struct {
+type InputSticker struct {
 	Sticker   []byte
 	Format    string
 	EmojiList []string
@@ -24,42 +24,101 @@ type Sticker struct {
 }
 
 type StickerPack struct {
-	UserID   int64
-	Name     string
-	Title    string
-	Stickers []Sticker
+	userID   int64
+	name     string
+	title    string
+	stickers []InputSticker
+	isPublic bool
+
+	nameSet      bool
+	validNameSet bool
 }
 
-type inputSticker struct {
+type attachSticker struct {
 	Sticker   string   `json:"sticker"`
 	Format    string   `json:"format"`
 	EmojiList []string `json:"emoji_list"`
 	Keywords  []string `json:"keywords"`
 }
 
+type GetStickerSetResponse struct {
+	Ok          bool       `json:"ok"`
+	Result      StickerSet `json:"result,omitempty"`
+	Description string     `json:"description,omitempty"`
+}
+
+type Option func(*StickerPack)
+
+func WithValidName(validName string) Option {
+	return func(sp *StickerPack) {
+		sp.name = validName
+	}
+}
+
+func WithName(name string) Option {
+	return func(sp *StickerPack) {
+		botName := config.Load().BotName()
+		validName := fmt.Sprintf("%s_by_%s", name, botName)
+		sp.name = validName
+	}
+}
+
+func WithTitle(title string) Option {
+	return func(sp *StickerPack) {
+		sp.title = title
+	}
+}
+
+func WithStickers(stickers []InputSticker) Option {
+	return func(sp *StickerPack) {
+		sp.stickers = stickers
+	}
+}
+
+func WithPublic(public bool) Option {
+	return func(sp *StickerPack) {
+		sp.isPublic = public
+	}
+}
+
+func NewStickerPack(userID int64, opts ...Option) (*StickerPack, error) {
+	sp := &StickerPack{userID: userID}
+	for _, opt := range opts {
+		opt(sp)
+	}
+
+	if sp.nameSet && sp.validNameSet {
+		return nil, fmt.Errorf("cannot use both WithName and WithValidName")
+	}
+	if !sp.nameSet && !sp.validNameSet {
+		return nil, fmt.Errorf("must use either WithName or WithValidName")
+	}
+
+	if !isValidPackName(sp.name) {
+		return nil, fmt.Errorf("invalid name: %q", sp.name)
+	}
+
+	return sp, nil
+}
+
 func (pack StickerPack) Create() (string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	IDstring := strconv.FormatInt(pack.UserID, 10)
+	IDstring := strconv.FormatInt(pack.userID, 10)
 	if err := writer.WriteField("user_id", IDstring); err != nil {
 		return "", fmt.Errorf("failed to write user_id: %w", err)
 	}
-	botName := config.Load().BotName()
-	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
-	if !isValidPackName(validName) {
-		return "", errors.New("invalid stickerpack name")
-	}
-	if err := writer.WriteField("name", validName); err != nil {
+	if err := writer.WriteField("name", pack.name); err != nil {
 		return "", fmt.Errorf("failed to write name: %w", err)
 	}
-	if err := writer.WriteField("title", pack.Title); err != nil {
+	if err := writer.WriteField("title", pack.title); err != nil {
 		return "", fmt.Errorf("failed to write title: %w", err)
 	}
 
-	inputStickers := make([]inputSticker, len(pack.Stickers))
-	for i, sticker := range pack.Stickers {
-		inputStickers[i] = inputSticker{
+	inputStickers := make([]attachSticker, len(pack.stickers))
+	for i, sticker := range pack.stickers {
+		inputStickers[i] = attachSticker{
 			Sticker:   fmt.Sprintf("attach://sticker%d", i),
 			EmojiList: sticker.EmojiList,
 			Format:    sticker.Format,
@@ -73,7 +132,7 @@ func (pack StickerPack) Create() (string, error) {
 	}
 	writer.WriteField("stickers", string(jsonStickers))
 
-	for i, sticker := range pack.Stickers {
+	for i, sticker := range pack.stickers {
 		extension := ".png"
 		if sticker.Format == "video" {
 			extension = ".webm"
@@ -104,14 +163,14 @@ func (pack StickerPack) Create() (string, error) {
 		return "", fmt.Errorf("telegram API error: %s", string(body))
 	}
 
-	stickerPackURL := fmt.Sprintf("https://t.me/addstickers/%s", validName)
+	stickerPackURL := fmt.Sprintf("https://t.me/addstickers/%s", pack.name)
 	return stickerPackURL, nil
 }
 
 func (pack StickerPack) Delete() error {
 	config := config.Load()
 	botName := config.BotName()
-	validName := fmt.Sprintf("%s_by_%s", pack.Name, botName)
+	validName := fmt.Sprintf("%s_by_%s", pack.name, botName)
 
 	reqURL := requestURL("deleteStickerSet")
 	resp, err := http.PostForm(reqURL, url.Values{
@@ -128,6 +187,55 @@ func (pack StickerPack) Delete() error {
 	}
 
 	return nil
+}
+
+func PackInfo(packName string) (*StickerSet, error) {
+	botName := config.Load().BotName()
+	validName := fmt.Sprintf("%s_by_%s", packName, botName)
+
+	resp, err := http.PostForm(requestURL("getStickerSet"), url.Values{
+		"name": {validName},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getStickerSet failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result GetStickerSetResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if !result.Ok {
+		return nil, fmt.Errorf("telegram API error: %s", result.Description)
+	}
+
+	return &result.Result, nil
+}
+
+func PackThumbnailFileID(packName string) (string, error) {
+	stickerSet, err := PackInfo(packName)
+	if err != nil {
+		return "", err
+	}
+
+	// thumbnail set explicitly
+	if stickerSet.Thumbnail != nil && stickerSet.Thumbnail.FileID != "" {
+		return stickerSet.Thumbnail.FileID, nil
+	}
+
+	// default to first sticker
+	if len(stickerSet.Stickers) > 0 {
+		firstSticker := stickerSet.Stickers[0]
+		// sticker has a thumbnail
+		if firstSticker.Thumbnail != nil && firstSticker.Thumbnail.FileID != "" {
+			return firstSticker.Thumbnail.FileID, nil
+		}
+		// fallback - the sticker itself
+		return firstSticker.FileID, nil
+	}
+
+	return "", errors.New("no thumbnail available")
 }
 
 func requestURL(method string) string {
