@@ -38,9 +38,9 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 	return title
 }
 
-func emotesToStickers(emotes []emote.EmoteInput) []telegram.Sticker {
+func emotesToStickers(emotes []emote.EmoteInput) []telegram.InputSticker {
 	// TODO handle errors
-	stickers := make([]telegram.Sticker, 0, len(emotes))
+	stickers := make([]telegram.InputSticker, 0, len(emotes))
 	for i, input := range emotes {
 		emote, err := input.ToEmote()
 		if err != nil {
@@ -58,14 +58,14 @@ func emotesToStickers(emotes []emote.EmoteInput) []telegram.Sticker {
 			log.Printf("failed resizing emote %s: %v", emote, err)
 			continue
 		}
-		stickers[i] = telegram.Sticker{
+		stickers[i] = telegram.InputSticker{
 			Sticker:   emoteData.File,
 			Format:    format[emoteData.Animated],
 			Keywords:  emote.Keywords(),
 			EmojiList: emote.EmojiList(),
 		}
 	}
-	
+
 	return stickers
 }
 
@@ -81,11 +81,17 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Load()
 	title := applyWatermark(req.Title, req.HasWatermark, cfg)
 
-	pack := telegram.StickerPack{
-		UserID:   req.UserID,
-		Name:     req.PackName,
-		Title:    title,
-		Stickers: stickers,
+	pack, err := telegram.NewStickerPack(
+		req.UserID,
+		telegram.WithName(req.PackName),
+		telegram.WithStickers(stickers),
+		telegram.WithTitle(req.Title),
+		telegram.WithPublic(req.IsPublic),
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	url, err := pack.Create()
