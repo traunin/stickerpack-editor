@@ -79,7 +79,6 @@ func packHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO delete packs with id
 	switch r.Method {
 	case http.MethodDelete:
 		deletePackHandler(w, r)

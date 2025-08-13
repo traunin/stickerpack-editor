@@ -2,15 +2,17 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
 type DeletePackRequest struct {
+	UserID   int64
 	PackName string `json:"pack_name"`
-	// UserID   string `json:"userID"`
 }
 
 type DeletePackResponse struct {
@@ -18,26 +20,68 @@ type DeletePackResponse struct {
 }
 
 func deletePackHandler(w http.ResponseWriter, r *http.Request) {
-	var req DeletePackRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid JSON schema", http.StatusBadRequest)
+	req, mr := parseDeletePackRequest(w, r)
+	if mr != nil {
+		http.Error(w, mr.Error(), mr.status)
 		return
 	}
 
-	if req.PackName == "" {
-		http.Error(w, "stickerpack name missing", http.StatusBadRequest)
+	pack, err := telegram.NewStickerPack(
+		req.UserID,
+		telegram.WithName(req.PackName),
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	pack := telegram.StickerPack{
-		Name: req.PackName,
-	}
-
-	err := pack.Delete()
+	err = pack.Delete()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to delete sticker pack: %v", err), http.StatusBadGateway)
 		return
 	}
 
 	json.NewEncoder(w).Encode(DeletePackResponse{Success: true})
+}
+
+func parseDeletePackRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+) (
+	req *DeletePackRequest,
+	mr *malformedRequest,
+) {
+	err := DecodeJSONBody(w, r, &req)
+	if err != nil {
+		if errors.As(err, &mr) {
+			return
+		}
+		log.Printf("decoding error in parseDeletePacksRequest: %v", err)
+		mr = &malformedRequest{
+			status: http.StatusInternalServerError,
+			msg:    "unable to decode request",
+		}
+		return
+	}
+
+	if req.PackName == "" {
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    "pack name is empty",
+		}
+		return
+	}
+
+	userID, ctxErr := UserIDFromContext(r)
+	if ctxErr != nil {
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    ctxErr.Error(),
+		}
+		return
+	}
+	req.UserID = userID
+
+	return
 }
