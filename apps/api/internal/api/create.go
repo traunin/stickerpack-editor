@@ -121,7 +121,7 @@ func parseCreatePackRequest(
 		if errors.As(err, &mr) {
 			return
 		}
-		log.Printf("decoding error in parseGetPacksRequest: %v", err)
+		log.Printf("decoding error in parseCreatePacksRequest: %v", err)
 		mr = &malformedRequest{
 			status: http.StatusInternalServerError,
 			msg:    "unable to decode request",
