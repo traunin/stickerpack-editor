@@ -24,11 +24,12 @@ type InputSticker struct {
 }
 
 type StickerPack struct {
-	userID   int64
-	name     string
-	title    string
-	stickers []InputSticker
-	isPublic bool
+	userID      int64
+	name        string
+	title       string
+	stickers    []InputSticker
+	isPublic    bool
+	thumbnailID string
 
 	nameSet      bool
 	validNameSet bool
@@ -47,16 +48,38 @@ type GetStickerSetResponse struct {
 	Description string     `json:"description,omitempty"`
 }
 
+func (sp *StickerPack) UserID() int64 {
+	return sp.userID
+}
+
+func (sp *StickerPack) Name() string {
+	return sp.name
+}
+
+func (sp *StickerPack) Title() string {
+	return sp.title
+}
+
+func (sp *StickerPack) IsPublic() bool {
+	return sp.isPublic
+}
+
+func (sp *StickerPack) ThumbnailID() string {
+	return sp.thumbnailID
+}
+
 type Option func(*StickerPack)
 
 func WithValidName(validName string) Option {
 	return func(sp *StickerPack) {
+		sp.validNameSet = true
 		sp.name = validName
 	}
 }
 
 func WithName(name string) Option {
 	return func(sp *StickerPack) {
+		sp.nameSet = true
 		botName := config.Load().BotName()
 		validName := fmt.Sprintf("%s_by_%s", name, botName)
 		sp.name = validName
@@ -101,7 +124,7 @@ func NewStickerPack(userID int64, opts ...Option) (*StickerPack, error) {
 	return sp, nil
 }
 
-func (pack StickerPack) Create() (string, error) {
+func (pack *StickerPack) Create() (string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
@@ -167,7 +190,7 @@ func (pack StickerPack) Create() (string, error) {
 	return stickerPackURL, nil
 }
 
-func (pack StickerPack) Delete() error {
+func (pack *StickerPack) Delete() error {
 	config := config.Load()
 	botName := config.BotName()
 	validName := fmt.Sprintf("%s_by_%s", pack.name, botName)
@@ -190,11 +213,8 @@ func (pack StickerPack) Delete() error {
 }
 
 func PackInfo(packName string) (*StickerSet, error) {
-	botName := config.Load().BotName()
-	validName := fmt.Sprintf("%s_by_%s", packName, botName)
-
 	resp, err := http.PostForm(requestURL("getStickerSet"), url.Values{
-		"name": {validName},
+		"name": {packName},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getStickerSet failed: %w", err)
@@ -207,13 +227,13 @@ func PackInfo(packName string) (*StickerSet, error) {
 	}
 
 	if !result.Ok {
-		return nil, fmt.Errorf("telegram API error: %s", result.Description)
+		return nil, fmt.Errorf("thumbnail telegram API error: %s", result.Description)
 	}
 
 	return &result.Result, nil
 }
 
-func PackThumbnailFileID(packName string) (string, error) {
+func PackThumbnailID(packName string) (string, error) {
 	stickerSet, err := PackInfo(packName)
 	if err != nil {
 		return "", err
@@ -236,6 +256,16 @@ func PackThumbnailFileID(packName string) (string, error) {
 	}
 
 	return "", errors.New("no thumbnail available")
+}
+
+func (pack *StickerPack) UpdateThumbnailID() error {
+	fileID, err := PackThumbnailID(pack.name)
+	if err != nil {
+		return err
+	}
+
+	pack.thumbnailID = fileID
+	return nil
 }
 
 func requestURL(method string) string {
