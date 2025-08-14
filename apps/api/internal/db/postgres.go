@@ -11,11 +11,17 @@ import (
 )
 
 const (
-	maxRetries              = 5
-	retryWait               = time.Second
-	insertStickerpackQuery  = `INSERT INTO stickerpacks (user_id, title, is_public) VALUES ($1, $2, $3)`
-	publicStickerpacksQuery = `SELECT id, title FROM stickerpacks WHERE is_public = true OFFSET $1 LIMIT $2`
-	countPacksQuery         = `SELECT COUNT(*) FROM stickerpacks WHERE is_public = true`
+	maxRetries             = 5
+	retryWait              = time.Second
+	insertStickerpackQuery = `
+	INSERT INTO stickerpacks (user_id, name, title, is_public, thumbnail_id)
+	VALUES ($1, $2, $3, $4, $5)`
+	publicStickerpacksQuery = `
+	SELECT id, title, thumbnail_id FROM stickerpacks
+	WHERE is_public = true OFFSET $1 LIMIT $2`
+	countPacksQuery = `
+	SELECT COUNT(*) FROM stickerpacks
+	WHERE is_public = true`
 )
 
 type Postgres struct {
@@ -23,12 +29,68 @@ type Postgres struct {
 }
 
 type PublicPack struct {
-	Id    int64  `json:"id"`
-	Title string `json:"title"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	ThumbnailID string `json:"thumbnail_id"`
+}
+
+type StoredPack struct {
+	ID          int64
+	UserID      int64
+	Name        string
+	Title       string
+	IsPublic    bool
+	ThumbnailID string
+}
+
+type Option func(*StoredPack)
+
+func WithID(id int64) Option {
+	return func(sp *StoredPack) {
+		sp.ID = id
+	}
+}
+
+func WithUserID(userID int64) Option {
+	return func(sp *StoredPack) {
+		sp.UserID = userID
+	}
+}
+
+func WithName(name string) Option {
+	return func(sp *StoredPack) {
+		sp.Name = name
+	}
+}
+
+func WithTitle(title string) Option {
+	return func(sp *StoredPack) {
+		sp.Title = title
+	}
+}
+
+func WithPublic(isPublic bool) Option {
+	return func(sp *StoredPack) {
+		sp.IsPublic = isPublic
+	}
+}
+
+func WithThumbnail(thumbnailID string) Option {
+	return func(sp *StoredPack) {
+		sp.ThumbnailID = thumbnailID
+	}
+}
+
+func NewStoredPack(opts ...Option) *StoredPack {
+	sp := &StoredPack{}
+	for _, opt := range opts {
+		opt(sp)
+	}
+	return sp
 }
 
 func (s *PublicPack) ScanRow(rows *sql.Rows) error {
-	return rows.Scan(&s.Id, &s.Title)
+	return rows.Scan(&s.ID, &s.Title, &s.ThumbnailID)
 }
 
 func NewPostgres() *Postgres {
@@ -58,8 +120,15 @@ func NewPostgres() *Postgres {
 	return nil
 }
 
-func (p Postgres) AddStickerpack(id int64, title string, isPublic bool) error {
-	_, err := p.db.Exec(insertStickerpackQuery, id, title, isPublic)
+func (p *Postgres) AddStickerpack(pack *StoredPack) error {
+	_, err := p.db.Exec(
+		insertStickerpackQuery,
+		pack.UserID,
+		pack.Name,
+		pack.Title,
+		pack.IsPublic,
+		pack.ThumbnailID,
+	)
 	return err
 }
 
