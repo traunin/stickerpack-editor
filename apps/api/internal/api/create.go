@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/resize"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
@@ -40,7 +41,7 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 
 func emotesToStickers(emotes []emote.EmoteInput) []telegram.InputSticker {
 	// TODO handle errors
-	stickers := make([]telegram.InputSticker, 0, len(emotes))
+	stickers := make([]telegram.InputSticker, len(emotes))
 	for i, input := range emotes {
 		emote, err := input.ToEmote()
 		if err != nil {
@@ -69,6 +70,18 @@ func emotesToStickers(emotes []emote.EmoteInput) []telegram.InputSticker {
 	return stickers
 }
 
+func packFromRequest(req *CreatePackRequest, cfg *config.Config) (*telegram.StickerPack, error) {
+	watermarkTitle := applyWatermark(req.Title, req.HasWatermark, cfg)
+	stickers := emotesToStickers(req.Emotes)
+	return telegram.NewStickerPack(
+		req.UserID,
+		telegram.WithName(req.PackName),
+		telegram.WithStickers(stickers),
+		telegram.WithTitle(watermarkTitle),
+		telegram.WithPublic(req.IsPublic),
+	)
+}
+
 func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	req, mr := parseCreatePackRequest(w, r)
 	if mr != nil {
@@ -76,19 +89,8 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stickers := emotesToStickers(req.Emotes)
-
 	cfg := config.Load()
-	title := applyWatermark(req.Title, req.HasWatermark, cfg)
-
-	pack, err := telegram.NewStickerPack(
-		req.UserID,
-		telegram.WithName(req.PackName),
-		telegram.WithStickers(stickers),
-		telegram.WithTitle(req.Title),
-		telegram.WithPublic(req.IsPublic),
-	)
-
+	pack, err := packFromRequest(req, cfg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -100,7 +102,20 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = cfg.DBConn().AddStickerpack(req.UserID, title, req.IsPublic)
+	err = pack.UpdateThumbnailID()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	storedPack := db.NewStoredPack(
+		db.WithUserID(pack.UserID()),
+		db.WithName(pack.Name()),
+		db.WithTitle(pack.Title()),
+		db.WithPublic(pack.IsPublic()),
+		db.WithThumbnail(pack.ThumbnailID()),
+	)
+	err = cfg.DBConn().AddStickerpack(storedPack)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
