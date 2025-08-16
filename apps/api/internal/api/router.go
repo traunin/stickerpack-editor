@@ -9,15 +9,17 @@ import (
 )
 
 const (
-	baseRoute  = "/api"
-	packsRoute = "/packs"
-	packRoute  = "/packs/"
-	authRoute  = "/auth"
+	baseRoute      = "/api"
+	packsRoute     = "/packs"
+	packRoute      = "/packs/"
+	authRoute      = "/auth"
+	thumbnailRoute = "/thumbnail"
 )
 
 var noAuthRoutes = []NoAuthRoute{
 	{Path: baseRoute + authRoute, Method: http.MethodPost, PrefixMatch: false},
 	{Path: baseRoute + packsRoute, Method: http.MethodGet, PrefixMatch: false},
+	{Path: baseRoute + thumbnailRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
 }
 
@@ -53,6 +55,7 @@ func SetupRouter() http.Handler {
 	api.HandleFunc(authRoute, authHandler)
 	api.HandleFunc(packsRoute, packsHandler)
 	api.HandleFunc(packRoute, packHandler)
+	api.HandleFunc(thumbnailRoute, thumbnailHandler)
 	mux.Handle(baseRoute+"/", http.StripPrefix(baseRoute, api))
 
 	auth := JWTMiddleware(noAuthRoutes, mux)
@@ -115,7 +118,7 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "jwt",
 		Value:    jwt,
 		Path:     "/",
-		Domain: domain,
+		Domain:   domain,
 		HttpOnly: true,
 		// Uncomment in prod?
 		// Secure:   true,
