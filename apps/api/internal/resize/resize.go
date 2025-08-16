@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"strconv"
+	"strings"
 
 	"os"
 	"os/exec"
@@ -70,13 +72,18 @@ func fitGIF(input []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to write input file: %w", err)
 	}
 
+	fps, err := GIFFPS(inputPath)
+	if err != nil || fps > 30 {
+		fps = 30
+	}
+
 	outputPath := filepath.Join(tmpDir, "output.webm")
 
 	// TODO cut vs speed up? file size checking?
 	cmd := exec.Command("ffmpeg",
 		"-i", inputPath,
 		"-t", "3", // 3 seconds length
-		"-r", "30", // 30 fps
+		"-r", fmt.Sprintf("%.0f", fps), // <= 30 fps
 		"-vf", "scale='if(gt(a,1),512,-1)':'if(gt(a,1),-1,512)'", // fit to 512px size
 		"-c:v", "libvpx-vp9",
 		"-pix_fmt", "yuva420p",
@@ -104,4 +111,28 @@ func fitGIF(input []byte) ([]byte, error) {
 	}
 
 	return output, nil
+}
+
+func GIFFPS(inputPath string) (float64, error) {
+	cmd := exec.Command("ffprobe",
+		"-v", "0",
+		"-select_streams", "v:0",
+		"-show_entries", "stream=r_frame_rate",
+		"-of", "default=noprint_wrappers=1:nokey=1",
+		inputPath,
+	)
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, err
+	}
+
+	parts := strings.Split(strings.TrimSpace(string(out)), "/")
+	if len(parts) == 2 {
+		num, _ := strconv.ParseFloat(parts[0], 64)
+		den, _ := strconv.ParseFloat(parts[1], 64)
+		if den != 0 {
+			return num / den, nil
+		}
+	}
+	return 0, fmt.Errorf("invalid FPS format: %s", out)
 }
