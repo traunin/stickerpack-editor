@@ -17,7 +17,7 @@ const (
 	INSERT INTO stickerpacks (user_id, name, title, is_public, thumbnail_id)
 	VALUES ($1, $2, $3, $4, $5)`
 	publicStickerpacksQuery = `
-	SELECT id, title, thumbnail_id FROM stickerpacks
+	SELECT id, title, name, thumbnail_id FROM stickerpacks
 	WHERE is_public = true OFFSET $1 LIMIT $2`
 	countPacksQuery = `
 	SELECT COUNT(*) FROM stickerpacks
@@ -31,6 +31,7 @@ type Postgres struct {
 type PublicPack struct {
 	ID          int64  `json:"id"`
 	Title       string `json:"title"`
+	Name        string `json:"name"`
 	ThumbnailID string `json:"thumbnail_id"`
 }
 
@@ -90,7 +91,7 @@ func NewStoredPack(opts ...Option) *StoredPack {
 }
 
 func (s *PublicPack) ScanRow(rows *sql.Rows) error {
-	return rows.Scan(&s.ID, &s.Title, &s.ThumbnailID)
+	return rows.Scan(&s.ID, &s.Title, &s.Name, &s.ThumbnailID)
 }
 
 func NewPostgres() *Postgres {
