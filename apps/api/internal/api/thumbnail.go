@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
@@ -49,7 +50,11 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	if strings.HasSuffix(fileURL, ".webm") {
+		w.Header().Set("Content-Type", "video/webm")
+	} else {
+		w.Header().Set("Content-Type", "image/webp")
+	}
 
 	_, err = io.Copy(w, resp.Body)
 	if err != nil {
