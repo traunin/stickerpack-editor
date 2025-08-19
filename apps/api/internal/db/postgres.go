@@ -18,7 +18,9 @@ const (
 	VALUES ($1, $2, $3, $4, $5)`
 	publicStickerpacksQuery = `
 	SELECT id, title, name, thumbnail_id FROM stickerpacks
-	WHERE is_public = true OFFSET $1 LIMIT $2`
+	WHERE is_public = true
+	ORDER BY id DESC
+	OFFSET $1 LIMIT $2`
 	countPacksQuery = `
 	SELECT COUNT(*) FROM stickerpacks
 	WHERE is_public = true`
