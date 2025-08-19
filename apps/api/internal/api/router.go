@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
 const (
@@ -13,12 +12,12 @@ const (
 	publicPacksRoute = "/public/packs"
 	userPacksRoute   = "/user/packs"
 	userPackRoute    = "/user/packs/"
-	authRoute        = "/auth"
+	sessionRoute     = "/session"
 	thumbnailRoute   = "/thumbnail"
 )
 
 var noAuthRoutes = []NoAuthRoute{
-	{Path: baseRoute + authRoute, Method: http.MethodPost, PrefixMatch: false},
+	{Path: baseRoute + sessionRoute, Method: http.MethodPost, PrefixMatch: false},
 	{Path: baseRoute + publicPacksRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: baseRoute + thumbnailRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
@@ -56,7 +55,7 @@ func SetupRouter() http.Handler {
 
 	api := http.NewServeMux()
 
-	api.HandleFunc(authRoute, authHandler)
+	api.HandleFunc(sessionRoute, sessionHandler)
 
 	api.HandleFunc(publicPacksRoute, publicPacksHandler)
 
@@ -107,39 +106,15 @@ func userPacksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func authHandler(w http.ResponseWriter, r *http.Request) {
+func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	if r.Method != http.MethodPost {
+	switch r.Method {
+	case http.MethodPost:
+		createSessionHandler(w, r)
+	case http.MethodDelete:
+		deleteSessionHandler(w, r)
+	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
-
-	req, err := telegram.ParseAuth(r)
-	if err != nil {
-		http.Error(w, "Failed to authenticate", http.StatusBadRequest)
-		return
-	}
-
-	jwt, err := SignID(req.ID)
-	if err != nil {
-		http.Error(w, "Failed to sign JWT", http.StatusBadRequest)
-		return
-	}
-
-	// not sure how to store the domain yet
-	// TODO FIX
-	domain := config.Load().Domain()
-	domain = strings.TrimPrefix(domain, "http://")
-	http.SetCookie(w, &http.Cookie{
-		Name:     "jwt",
-		Value:    jwt,
-		Path:     "/",
-		Domain:   domain,
-		HttpOnly: true,
-		// Uncomment in prod?
-		// Secure:   true,
-		// SameSite: http.SameSiteLaxMode,
-	})
-	w.WriteHeader(http.StatusOK)
 }
