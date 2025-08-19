@@ -15,7 +15,7 @@ import (
 )
 
 type DeletePackRequest struct {
-	UserID   int64
+	UserID   int64  `json:"-"`
 	PackName string `json:"pack_name"`
 }
 
@@ -24,7 +24,7 @@ type DeletePackResponse struct {
 }
 
 type CreatePackRequest struct {
-	UserID       int64
+	UserID       int64              `json:"-"`
 	PackName     string             `json:"pack_name"`
 	Title        string             `json:"title"`
 	Emotes       []emote.EmoteInput `json:"emotes"`
