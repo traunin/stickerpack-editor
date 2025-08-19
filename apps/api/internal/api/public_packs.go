@@ -14,7 +14,7 @@ type GetPublicPacksResponse struct {
 	Total int             `json:"total"`
 }
 
-func getPacksHandler(w http.ResponseWriter, r *http.Request) {
+func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	page, err := strconv.Atoi(query.Get("page"))
 	if err != nil {
