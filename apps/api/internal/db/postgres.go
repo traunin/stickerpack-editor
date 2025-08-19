@@ -30,7 +30,7 @@ type Postgres struct {
 	db *sql.DB
 }
 
-type PublicPack struct {
+type PackResponse struct {
 	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	Name        string `json:"name"`
@@ -92,7 +92,7 @@ func NewStoredPack(opts ...Option) *StoredPack {
 	return sp
 }
 
-func (s *PublicPack) ScanRow(rows *sql.Rows) error {
+func (s *PackResponse) ScanRow(rows *sql.Rows) error {
 	return rows.Scan(&s.ID, &s.Title, &s.Name, &s.ThumbnailID)
 }
 
@@ -135,17 +135,17 @@ func (p *Postgres) AddStickerpack(pack *StoredPack) error {
 	return err
 }
 
-func (p Postgres) PublicStickerpacks(page, pageSize int) ([]PublicPack, error) {
+func (p Postgres) PublicStickerpacks(page, pageSize int) ([]PackResponse, error) {
 	offset := page * pageSize
 	rows, err := p.db.Query(publicStickerpacksQuery, offset, pageSize)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	stickerpacks := make([]PublicPack, 0, pageSize)
+	stickerpacks := make([]PackResponse, 0, pageSize)
 
 	for rows.Next() {
-		var sp PublicPack
+		var sp PackResponse
 		err := sp.ScanRow(rows)
 		if err != nil {
 			log.Printf("failed to scan stickerpack: %v", err)

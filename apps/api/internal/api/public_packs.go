@@ -10,7 +10,7 @@ import (
 )
 
 type GetPublicPacksResponse struct {
-	Packs []db.PublicPack `json:"packs"`
+	Packs []db.PackResponse `json:"packs"`
 	Total int             `json:"total"`
 }
 
