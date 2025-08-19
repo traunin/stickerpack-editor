@@ -9,16 +9,17 @@ import (
 )
 
 const (
-	baseRoute      = "/api"
-	packsRoute     = "/packs"
-	packRoute      = "/packs/"
-	authRoute      = "/auth"
-	thumbnailRoute = "/thumbnail"
+	baseRoute        = "/api"
+	publicPacksRoute = "/public/packs"
+	userPacksRoute   = "/user/packs"
+	userPackRoute    = "/user/packs/"
+	authRoute        = "/auth"
+	thumbnailRoute   = "/thumbnail"
 )
 
 var noAuthRoutes = []NoAuthRoute{
 	{Path: baseRoute + authRoute, Method: http.MethodPost, PrefixMatch: false},
-	{Path: baseRoute + packsRoute, Method: http.MethodGet, PrefixMatch: false},
+	{Path: baseRoute + publicPacksRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: baseRoute + thumbnailRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
 }
@@ -44,8 +45,8 @@ func withCORS(h http.Handler) http.Handler {
 func withContentTypeJSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, thumbnailRoute) {
-            w.Header().Set("Content-Type", "application/json")
-        }
+			w.Header().Set("Content-Type", "application/json")
+		}
 		h.ServeHTTP(w, r)
 	})
 }
@@ -54,31 +55,36 @@ func SetupRouter() http.Handler {
 	mux := http.NewServeMux()
 
 	api := http.NewServeMux()
+
 	api.HandleFunc(authRoute, authHandler)
-	api.HandleFunc(packsRoute, packsHandler)
-	api.HandleFunc(packRoute, packHandler)
+
+	api.HandleFunc(publicPacksRoute, publicPacksHandler)
+
+	api.HandleFunc(userPackRoute, userPackHandler)
+	api.HandleFunc(userPacksRoute, userPacksHandler)
+
 	api.HandleFunc(thumbnailRoute, thumbnailHandler)
+
 	mux.Handle(baseRoute+"/", http.StripPrefix(baseRoute, api))
 
 	auth := JWTMiddleware(noAuthRoutes, mux)
 	contentType := withContentTypeJSON(auth)
 	cors := withCORS(contentType)
+
 	return cors
 }
 
-func packsHandler(w http.ResponseWriter, r *http.Request) {
+func publicPacksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodPost:
-		createPackHandler(w, r)
 	case http.MethodGet:
-		getPacksHandler(w, r)
+		getPublicPacksHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func packHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, packRoute)
+func userPackHandler(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimPrefix(r.URL.Path, userPackRoute)
 	if id == "" {
 		http.Error(w, "Missing pack ID", http.StatusBadRequest)
 		return
@@ -87,6 +93,15 @@ func packHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodDelete:
 		deletePackHandler(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func userPacksHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		createPackHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
