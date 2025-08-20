@@ -30,7 +30,7 @@ export async function uploadPack(request: StickerpackRequest) {
   }
 
   try {
-    const res = await fetch(`${API_URL}/packs`, {
+    const res = await fetch(`${API_URL}/user/packs`, {
       method: 'POST',
       credentials: 'include',
       headers: {
