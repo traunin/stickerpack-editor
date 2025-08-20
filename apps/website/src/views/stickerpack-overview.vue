@@ -1,47 +1,45 @@
 <template>
-  <div class="stickerpacks">
-    <AddStickerpack />
-    <StickerpackPreview
-      v-for="stickerpack in stickerpacks"
-      :key="stickerpack.name"
-      :name="stickerpack.name"
-    />
+  <div class="overview">
+    <div class="user-packs-row">
+      <AddStickerpack />
+      <UserPacksList endpoint="user/packs" class="user-packs" />
+    </div>
+    <PublicPacksList endpoint="public/packs" class="public-packs" />
   </div>
 </template>
 
 <script setup lang = "ts">
-import { ref } from 'vue'
 import AddStickerpack from '@/components/create-link.vue'
-import StickerpackPreview from '@/components/stickerpack-preview.vue'
-
-interface Stickerpack {
-  name: string
-}
-
-const loading = ref(false)
-const stickerpacks = ref<null | Stickerpack[]>(null)
-
-fetchStickerpacks()
-
-async function fetchStickerpacks() {
-  loading.value = true
-
-  try {
-    stickerpacks.value =
-      await fetch('http://localhost:8080/api/stickerpacks')
-        .then(res => res.json())
-  } catch (err) {
-    console.log(err)
-  } finally {
-    loading.value = false
-  }
-}
+import PublicPacksList from '@/components/public-packs-list.vue'
+import UserPacksList from '@/components/user-packs-list.vue'
 </script>
 
 <style scoped>
-.stickerpacks {
-  margin: 20px;
+.overview {
+  flex: 1;
+  align-self: stretch;
   display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 20px;
   gap: 20px;
+  justify-content: space-around;
+}
+
+.user-packs-row {
+  display: flex;
+  gap: 40px;
+  align-self: stretch;
+}
+
+.public-packs {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: stretch;
+  display: flex;
+}
+
+.user-packs {
+  flex: 1;
 }
 </style>
