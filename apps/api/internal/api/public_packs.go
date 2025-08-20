@@ -6,13 +6,7 @@ import (
 	"strconv"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
 )
-
-type GetPublicPacksResponse struct {
-	Packs []db.PackResponse `json:"packs"`
-	Total int             `json:"total"`
-}
 
 func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
@@ -49,7 +43,7 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(GetPublicPacksResponse{
+	json.NewEncoder(w).Encode(GetPacksResponse{
 		Packs: packs,
 		Total: total,
 	})
