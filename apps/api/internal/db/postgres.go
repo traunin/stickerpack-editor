@@ -13,17 +13,25 @@ import (
 const (
 	maxRetries             = 5
 	retryWait              = time.Second
-	insertStickerpackQuery = `
+	insertPackQuery = `
 	INSERT INTO stickerpacks (user_id, name, title, is_public, thumbnail_id)
 	VALUES ($1, $2, $3, $4, $5)`
-	publicStickerpacksQuery = `
+	publicPacksQuery = `
 	SELECT id, title, name, thumbnail_id FROM stickerpacks
 	WHERE is_public = true
 	ORDER BY id DESC
 	OFFSET $1 LIMIT $2`
-	countPacksQuery = `
+	countPublicPacksQuery = `
 	SELECT COUNT(*) FROM stickerpacks
 	WHERE is_public = true`
+	userPacksQuery = `
+	SELECT id, title, name, thumbnail_id FROM stickerpacks
+	WHERE user_id = $1
+	ORDER BY id DESC
+	OFFSET $2 LIMIT $3`
+	countUserPacksQuery = `
+	SELECT COUNT(*) FROM stickerpacks
+	WHERE user_id = $1`
 )
 
 type Postgres struct {
@@ -125,7 +133,7 @@ func NewPostgres() *Postgres {
 
 func (p *Postgres) AddStickerpack(pack *StoredPack) error {
 	_, err := p.db.Exec(
-		insertStickerpackQuery,
+		insertPackQuery,
 		pack.UserID,
 		pack.Name,
 		pack.Title,
@@ -137,7 +145,7 @@ func (p *Postgres) AddStickerpack(pack *StoredPack) error {
 
 func (p Postgres) PublicStickerpacks(page, pageSize int) ([]PackResponse, error) {
 	offset := page * pageSize
-	rows, err := p.db.Query(publicStickerpacksQuery, offset, pageSize)
+	rows, err := p.db.Query(publicPacksQuery, offset, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +167,34 @@ func (p Postgres) PublicStickerpacks(page, pageSize int) ([]PackResponse, error)
 
 func (p Postgres) PublicPacksCount() (int, error) {
 	var count int
-	err := p.db.QueryRow(countPacksQuery).Scan(&count)
+	err := p.db.QueryRow(countPublicPacksQuery).Scan(&count)
+	return count, err
+}
+
+func (p Postgres) UserPacks(userID int64, page, pageSize int) ([]PackResponse, error) {
+	offset := page * pageSize
+	rows, err := p.db.Query(userPacksQuery, userID, offset, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	stickerpacks := make([]PackResponse, 0, pageSize)
+
+	for rows.Next() {
+		var sp PackResponse
+		err := sp.ScanRow(rows)
+		if err != nil {
+			log.Printf("failed to scan stickerpack: %v", err)
+			continue
+		}
+		stickerpacks = append(stickerpacks, sp)
+	}
+
+	return stickerpacks, nil
+}
+
+func (p Postgres) UserPacksCount(userID int) (int, error) {
+	var count int
+	err := p.db.QueryRow(countUserPacksQuery, userID).Scan(&count)
 	return count, err
 }

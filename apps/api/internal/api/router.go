@@ -99,6 +99,8 @@ func userPackHandler(w http.ResponseWriter, r *http.Request) {
 
 func userPacksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case http.MethodGet:
+		getUserPacksHandler(w, r)
 	case http.MethodPost:
 		createPackHandler(w, r)
 	default:
