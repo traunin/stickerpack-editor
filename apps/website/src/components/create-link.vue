@@ -7,7 +7,7 @@
       +
     </span>
     <span class="text">
-      Create a new pack
+      Create pack
     </span>
   </RouterLink>
 </template>
@@ -26,10 +26,10 @@
   color: var(--text);
   text-decoration: none !important;
   padding: 20px;
-  font-size: 1.3em;
+  font-size: 1.2em;
 }
 
 .logo {
-  font-size: 10em;
+  font-size: 6em;
 }
 </style>
