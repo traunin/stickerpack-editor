@@ -18,7 +18,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { User } from '@/api/auth'
+import type { User } from '@/api/session'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 
 declare global {
