@@ -2,26 +2,20 @@
   <div class="emote">
     <img :src="emote.preview" :alt="emote.name">
     <div class="name">
-      {{ trimmedName }}
+      {{ trimmed }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { Emote } from '@/composables/use-emote-search'
+import { useTrimmedString } from '@/composables/use-trimmed-string'
 
 const props = defineProps<{
   emote: Emote
 }>()
 
-const MAX_NAME_LENGTH = 30
-const TRIMMED_LENGTH = 27
-const trimmedName = computed(() =>
-  props.emote.name.length < MAX_NAME_LENGTH ?
-    props.emote.name :
-    `${props.emote.name.substring(0, TRIMMED_LENGTH)}...`,
-)
+const { trimmed } = useTrimmedString(props.emote.name, 30)
 </script>
 
 <style scoped>
