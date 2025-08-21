@@ -185,6 +185,8 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// the pack was created, but the user can't add it
+	// TODO better error handling
 	err = pack.UpdateThumbnailID()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
@@ -198,13 +200,19 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		db.WithPublic(pack.IsPublic()),
 		db.WithThumbnail(pack.ThumbnailID()),
 	)
-	err = cfg.DBConn().AddStickerpack(storedPack)
+	createdPack, err := cfg.DBConn().AddStickerpack(storedPack)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(CreatePackResponse{PackURL: url})
+	json.NewEncoder(w).Encode(struct {
+		PackURL string           `json:"pack_url"`
+		Pack    *db.PackResponse `json:"pack"`
+	}{
+		PackURL: url,
+		Pack:    createdPack,
+	})
 }
 
 func parseCreatePackRequest(
@@ -311,4 +319,3 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		Total: total,
 	})
 }
-

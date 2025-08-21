@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	maxRetries             = 5
-	retryWait              = time.Second
+	maxRetries      = 5
+	retryWait       = time.Second
 	insertPackQuery = `
 	INSERT INTO stickerpacks (user_id, name, title, is_public, thumbnail_id)
-	VALUES ($1, $2, $3, $4, $5)`
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id, title, name, thumbnail_id`
 	publicPacksQuery = `
 	SELECT id, title, name, thumbnail_id FROM stickerpacks
 	WHERE is_public = true
@@ -131,16 +132,20 @@ func NewPostgres() *Postgres {
 	return nil
 }
 
-func (p *Postgres) AddStickerpack(pack *StoredPack) error {
-	_, err := p.db.Exec(
+func (p *Postgres) AddStickerpack(pack *StoredPack) (*PackResponse, error) {
+	var resp PackResponse
+	err := p.db.QueryRow(
 		insertPackQuery,
 		pack.UserID,
 		pack.Name,
 		pack.Title,
 		pack.IsPublic,
 		pack.ThumbnailID,
-	)
-	return err
+	).Scan(&resp.ID, &resp.Title, &resp.Name, &resp.ThumbnailID)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
 func (p Postgres) PublicStickerpacks(page, pageSize int) ([]PackResponse, error) {
