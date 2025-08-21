@@ -1,40 +1,13 @@
 <template>
   <div class="creation-form">
-    <div class="parameters">
-      <input
-        id="name"
-        v-model="name"
-        type="text"
-        placeholder="Pack name used in links, english letters and digits"
-      >
-      <input
-        id="title"
-        v-model="title"
-        type="text"
-        placeholder="Displayed pack name"
-      >
-      <div class="watermark">
-        <input
-          id="watermark"
-          v-model="watermark"
-          type="checkbox"
-          checked
-        >
-        <label for="watermark">Use a bot name watermark</label>
-      </div>
-      <div class="public">
-        <input
-          id="public"
-          v-model="isPublic"
-          type="checkbox"
-          checked
-        >
-        <label for="public">Show to other users</label>
-      </div>
-      <div class="sticker-count">
-        {{ stickerCount }} / {{ maxStickers }}
-      </div>
-    </div>
+    <PackParameters
+      v-model:name="name"
+      v-model:title="title"
+      v-model:watermark="watermark"
+      v-model:is-public="isPublic"
+      :sticker-count="stickerCount"
+      :max-stickers="maxStickers"
+    />
     <div class="stickers">
       <div class="sticker-search">
         <EmoteSearch @emote-selected="addEmote" />
@@ -58,6 +31,7 @@
 import { computed, ref, toRaw } from 'vue'
 import { type Sticker, uploadPack } from '@/api/stickerpack-upload'
 import EmoteSearch from '@/components/emote-search.vue'
+import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
 import type { Emote } from '@/composables/use-emote-search'
 
@@ -102,41 +76,6 @@ button {
   cursor: pointer
 }
 
-.parameters {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 0;
-  background: var(--panel);
-  padding: 10px;
-}
-
-.watermark, .public {
-  flex: 1;
-  font-size: 1.5em;
-  display: flex;
-  gap: 20px;
-}
-
-.watermark input, .public input {
-  align-self: stretch;
-  flex: 0;
-  aspect-ratio: 1;
-}
-
-label {
-  flex: 1;
-  align-self: center;
-}
-
-input {
-  flex: 1;
-  background: var(--input);
-  color: var(--text);
-  border: 3px solid var(--primary);
-  font-size: 1.3em;
-  padding: 5px;
-}
-
 .creation-form {
   flex: 1;
   align-self: stretch;
@@ -178,10 +117,5 @@ input {
   padding: 10px;
   scrollbar-color: var(--accent) var(--input);
   scrollbar-width: thin;
-}
-
-.sticker-count {
-  font-size: 2em;
-  align-self: center;
 }
 </style>
