@@ -1,10 +1,16 @@
 <template>
   <div class="overview">
-    <div class="user-packs-row">
-      <AddStickerpack />
-      <UserPacksList endpoint="user/packs" class="user-packs" />
+    <div class="user-packs-panel">
+      <h1>User packs</h1>
+      <div class="user-packs-row">
+        <AddStickerpack />
+        <UserPacksList class="user-packs" />
+      </div>
     </div>
-    <PublicPacksList endpoint="public/packs" class="public-packs" />
+    <div class="public-packs-panel">
+      <h1>Shared packs</h1>
+      <PublicPacksList class="public-packs" />
+    </div>
   </div>
 </template>
 
@@ -15,13 +21,20 @@ import UserPacksList from '@/components/user-packs-list.vue'
 </script>
 
 <style scoped>
+h1 {
+  color: var(--text);
+  font-size: 1.5em;
+  border-bottom: 2px solid var(--text);
+  padding: 5px;
+  margin: 0 0 20px 0;
+}
+
 .overview {
   flex: 1;
   align-self: stretch;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin: 20px;
   gap: 20px;
   justify-content: space-around;
 }
@@ -41,5 +54,10 @@ import UserPacksList from '@/components/user-packs-list.vue'
 
 .user-packs {
   flex: 1;
+}
+
+.user-packs-panel, .public-packs-panel {
+  padding: 20px;
+  background: var(--panel)
 }
 </style>
