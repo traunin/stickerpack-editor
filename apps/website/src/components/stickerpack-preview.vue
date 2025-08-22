@@ -26,10 +26,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { API_URL } from '@/api/config'
-import type { PublicPack } from '@/api/packs'
 import { useTrimmedString } from '@/composables/use-trimmed-string'
+import type { PackResponse } from '@/types/pack'
 
-const props = defineProps<{ stickerpack: PublicPack }>()
+const props = defineProps<{ stickerpack: PackResponse }>()
 
 const mediaURL = ref<string | null>(null)
 const isVideo = ref(false)

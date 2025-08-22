@@ -1,14 +1,8 @@
 import { API_URL } from './config'
-
-export interface PublicPack {
-  id: number
-  title: string
-  name: string
-  thumbnail_id: string
-}
+import type { PackResponse } from '@/types/pack'
 
 interface PacksResponse {
-  packs: PublicPack[]
+  packs: PackResponse[]
   total: number
 }
 

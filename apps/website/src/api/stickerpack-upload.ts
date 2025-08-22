@@ -1,5 +1,6 @@
 import type { Emote } from '@/composables/use-emote-search'
 import { API_URL } from './config'
+import type { PackResponse } from '@/types/pack'
 
 export type Source = '7tv'
 
@@ -14,6 +15,11 @@ export interface StickerpackRequest {
   emotes: Sticker[]
   has_watermark: boolean
   is_public: boolean
+}
+
+export interface CreatePackResponse {
+  pack_url: string
+  pack: PackResponse
 }
 
 interface EmoteInput {
@@ -43,8 +49,8 @@ export async function uploadPack(request: StickerpackRequest) {
       return await res.text()
     }
 
-    const data = await res.json()
-    console.log(data)
+    const data: CreatePackResponse = await res.json()
+    return data
   } catch (err) {
     console.error('Failed to create pack:', err)
   }
