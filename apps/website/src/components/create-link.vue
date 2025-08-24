@@ -27,6 +27,7 @@
   text-decoration: none !important;
   padding: 20px;
   font-size: 1.2em;
+  background: var(--background)
 }
 
 .logo {
