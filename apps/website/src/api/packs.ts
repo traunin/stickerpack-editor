@@ -1,7 +1,7 @@
 import { API_URL } from './config'
 import type { PackResponse } from '@/types/pack'
 
-interface PacksResponse {
+export interface PacksResponse {
   packs: PackResponse[]
   total: number
 }
@@ -23,5 +23,5 @@ export async function fetchPacksEndpoint(endpoint: string, page = 0, pageSize = 
   }
 
   const json: PacksResponse = await res.json()
-  return { packs: json.packs, total: json.total }
+  return json
 }

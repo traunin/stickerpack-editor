@@ -1,5 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
-import { fetchPacksEndpoint, type PublicPack } from '@/api/packs'
+import { fetchPacksEndpoint } from '@/api/packs'
+import type { PackResponse } from '@/types/pack'
 
 export function usePacksEndpoint(
   endpoint: string,
@@ -8,7 +9,7 @@ export function usePacksEndpoint(
 ) {
   const page = ref(1)
   const maxPages = ref(1)
-  const publicPacks = ref<PublicPack[] | null>()
+  const publicPacks = ref<PackResponse[] | null>()
   const error = ref<string | null>()
 
   const fetchData = async () => {
