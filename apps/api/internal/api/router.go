@@ -83,15 +83,17 @@ func publicPacksHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userPackHandler(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, userPackRoute)
-	if id == "" {
-		http.Error(w, "Missing pack ID", http.StatusBadRequest)
+	name := strings.TrimPrefix(r.URL.Path, userPackRoute)
+	if name == "" {
+		http.Error(w, "Missing pack name", http.StatusBadRequest)
 		return
 	}
 
 	switch r.Method {
 	case http.MethodDelete:
 		deletePackHandler(w, r)
+	case http.MethodHead:
+		nameExistsHandler(w, r, name)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

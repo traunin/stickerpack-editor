@@ -319,3 +319,24 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		Total: total,
 	})
 }
+
+func nameExistsHandler(w http.ResponseWriter, r *http.Request, name string) {
+	// race condition: two people create a pack with the same name
+	// handled by telegram and UNIQUE(name), but it's not the solution
+	// might store names of stickerpacks being parsed and fail early
+	// but if the earlier pack with the same name fails...
+	// this is just for the frontend to have a tick on the name input field
+	cfg := config.Load()
+	validName := telegram.ValidPackName(name)
+	exists, err := cfg.DBConn().NameExists(validName)
+	if err != nil {
+		http.Error(w, "Database error: unable to check name", http.StatusInternalServerError)
+		return
+	}
+
+	if exists {
+		w.WriteHeader(http.StatusOK) // 200 name taken
+	} else {
+		http.NotFound(w, r) // 404 name available
+	}
+}

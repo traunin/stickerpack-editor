@@ -33,6 +33,7 @@ const (
 	countUserPacksQuery = `
 	SELECT COUNT(*) FROM stickerpacks
 	WHERE user_id = $1`
+	nameExistsQuery = `SELECT EXISTS(SELECT 1 FROM stickerpacks WHERE name=$1)`
 )
 
 type Postgres struct {
@@ -202,4 +203,10 @@ func (p Postgres) UserPacksCount(userID int) (int, error) {
 	var count int
 	err := p.db.QueryRow(countUserPacksQuery, userID).Scan(&count)
 	return count, err
+}
+
+func (p *Postgres) NameExists(name string) (bool, error) {
+    var exists bool
+    err := p.db.QueryRow(nameExistsQuery, name).Scan(&exists)
+    return exists, err
 }

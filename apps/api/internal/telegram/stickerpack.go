@@ -80,8 +80,7 @@ func WithValidName(validName string) Option {
 func WithName(name string) Option {
 	return func(sp *StickerPack) {
 		sp.nameSet = true
-		botName := config.Load().BotName()
-		validName := fmt.Sprintf("%s_by_%s", name, botName)
+		validName := ValidPackName(name)
 		sp.name = validName
 	}
 }
@@ -102,6 +101,11 @@ func WithPublic(public bool) Option {
 	return func(sp *StickerPack) {
 		sp.isPublic = public
 	}
+}
+
+func ValidPackName(name string) string {
+	botName := config.Load().BotName()
+	return fmt.Sprintf("%s_by_%s", name, botName)
 }
 
 func NewStickerPack(userID int64, opts ...Option) (*StickerPack, error) {
