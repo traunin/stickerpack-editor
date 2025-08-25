@@ -19,6 +19,7 @@ const (
 var noAuthRoutes = []NoAuthRoute{
 	{Path: baseRoute + sessionRoute, Method: http.MethodPost, PrefixMatch: false},
 	{Path: baseRoute + publicPacksRoute, Method: http.MethodGet, PrefixMatch: false},
+	{Path: baseRoute + userPackRoute, Method: http.MethodHead, PrefixMatch: true},
 	{Path: baseRoute + thumbnailRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
 }
@@ -27,8 +28,14 @@ func withCORS(h http.Handler) http.Handler {
 	domain := config.Load().Domain()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", domain)
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set(
+			"Access-Control-Allow-Methods",
+			"GET, POST, PUT, DELETE, OPTIONS, HEAD",
+		)
+		w.Header().Set(
+			"Access-Control-Allow-Headers",
+			"Content-Type, Authorization",
+		)
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		// preflight
