@@ -1,17 +1,16 @@
 <template>
   <div class="parameters">
-    <input
-      id="name"
+    <PackNameInput
       v-model="name"
-      type="text"
-      placeholder="Pack name used in links, english letters and digits"
-    >
-    <input
-      id="title"
+      class="name"
+      @error="forwardNameError"
+    />
+    <PackTitleInput
       v-model="title"
-      type="text"
-      placeholder="Displayed pack name"
-    >
+      class="title"
+      :use-watermark="watermark"
+      @error="forwardTitleError"
+    />
     <div class="watermark">
       <input id="watermark" v-model="watermark" type="checkbox" checked>
       <label for="watermark">Use a bot name watermark</label>
@@ -27,15 +26,31 @@
 </template>
 
 <script setup lang="ts">
+import PackNameInput from '@/components/pack-name-input.vue'
+import PackTitleInput from './pack-title-input.vue'
+
 defineProps<{
   stickerCount: number
   maxStickers: number
 }>()
 
-const name = defineModel('name')
-const title = defineModel('title')
-const watermark = defineModel('watermark')
-const isPublic = defineModel('isPublic')
+const emit = defineEmits<{
+  (e: 'name-error', value: string | null): void
+  (e: 'title-error', value: string | null): void
+}>()
+
+const name = defineModel<string>('name', { default: '' })
+const title = defineModel<string>('title', { default: '' })
+const watermark = defineModel<boolean>('watermark', { default: true })
+const isPublic = defineModel<boolean>('isPublic', { default: true })
+
+function forwardNameError(e: string | null) {
+  emit('name-error', e)
+}
+
+function forwardTitleError(e: string | null) {
+  emit('title-error', e)
+}
 </script>
 
 <style scoped>
@@ -54,24 +69,19 @@ const isPublic = defineModel('isPublic')
   gap: 20px;
 }
 
-.watermark input, .public input {
+input {
   align-self: stretch;
   flex: 0;
   aspect-ratio: 1;
 }
 
+.name, .title {
+  flex: 1;
+}
+
 label {
   flex: 1;
   align-self: center;
-}
-
-input {
-  flex: 1;
-  background: var(--input);
-  color: var(--text);
-  border: 3px solid var(--primary);
-  font-size: 1.3em;
-  padding: 5px;
 }
 
 .sticker-count {

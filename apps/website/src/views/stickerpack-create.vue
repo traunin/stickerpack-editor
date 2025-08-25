@@ -15,6 +15,8 @@
       v-model:is-public="isPublic"
       :sticker-count="stickerCount"
       :max-stickers="maxStickers"
+      @name-error="nameError = $event"
+      @title-error="titleError = $event"
     />
     <div class="stickers">
       <div class="sticker-search">
@@ -29,8 +31,8 @@
         />
       </div>
     </div>
-    <button @click="createPack">
-      Create
+    <button :disabled="!!buttonError" @click="createPack">
+      Create {{ buttonError ? ` | ${buttonError}` : '' }}
     </button>
   </div>
 </template>
@@ -53,6 +55,9 @@ const watermark = ref<boolean>(true)
 const isPublic = ref<boolean>(true)
 const stickers = ref<Sticker[]>([])
 
+const nameError = ref<string | null>(null)
+const titleError = ref<string | null>(null)
+
 const stickerCount = computed(() => stickers.value.length)
 const maxStickers = 50 // 200 is not supported yet
 
@@ -61,6 +66,18 @@ const createdPack = useCreatedPackStore()
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
+
+const buttonError = computed(() => {
+  if (nameError.value)
+    return nameError.value
+  if (titleError.value)
+    return titleError.value
+  if (stickerCount.value === 0)
+    return 'No emotes selected'
+  if (stickerCount.value > maxStickers)
+    return `Too many emotes (max ${maxStickers})`
+  return null
+})
 
 function addEmote(emote: Emote) {
   if (stickerCount.value < maxStickers) {
@@ -73,6 +90,10 @@ function removeEmote(index: number) {
 }
 
 async function createPack() {
+  if (buttonError.value) {
+    return
+  }
+
   isLoading.value = true
   error.value = null
   try {
@@ -86,7 +107,7 @@ async function createPack() {
 
     createdPack.createdPack = response.pack
     router.push({
-      name: 'packDetail',
+      name: 'packCreated',
       params: { id: response.pack.id },
     })
   } catch (err: unknown) {
@@ -171,5 +192,10 @@ button {
 .v-enter-from,
 .v-leave-to {
   top: -15%;
+}
+
+button:disabled {
+  background: grey;
+  cursor: default;
 }
 </style>
