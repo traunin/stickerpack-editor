@@ -35,7 +35,8 @@ onMounted(() => {
   window.onAuth = authStore.logIn
 
   const script = document.createElement('script')
-  script.setAttribute('data-telegram-login', 'seventv_stickerpack_bot')
+
+  script.setAttribute('data-telegram-login', import.meta.env.VITE_BOT_NAME)
   script.setAttribute('data-size', 'large')
   script.setAttribute('data-userpic', 'false')
   script.setAttribute('data-radius', '10')
