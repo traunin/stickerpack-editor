@@ -46,13 +46,24 @@ export async function uploadPack(request: StickerpackRequest) {
     })
 
     if (!res.ok) {
-      return await res.text()
+      const text = await res.text()
+      let errorMessage: string
+
+      try {
+        const errJson = JSON.parse(text)
+        errorMessage = errJson.message || JSON.stringify(errJson)
+      } catch {
+        errorMessage = text
+      }
+
+      throw new Error(`Failed to create pack: ${errorMessage}`)
     }
 
     const data: CreatePackResponse = await res.json()
     return data
-  } catch (err) {
-    console.error('Failed to create pack:', err)
+  } catch (err: any) {
+    console.error('uploadPack error:', err)
+    throw new Error(err?.message || 'Unknown error while creating pack')
   }
 }
 

@@ -11,6 +11,11 @@ const router = createRouter({
       path: '/create',
       component: () => import('@/views/stickerpack-create.vue')
     },
+    {
+      path: '/created/:id',
+      name: "packCreated",
+      component: () => import('@/views/stickerpack-created.vue')
+    },
   ],
 })
 

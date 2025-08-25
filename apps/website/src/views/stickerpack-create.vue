@@ -1,4 +1,12 @@
 <template>
+  <Transition>
+    <ErrorMessage
+      v-if="error != null"
+      :message="error"
+      class="error"
+    />
+  </Transition>
+  <ModalLoading v-if="isLoading" message="The stickerpack is creating" />
   <div class="creation-form">
     <PackParameters
       v-model:name="name"
@@ -29,19 +37,30 @@
 
 <script setup lang="ts">
 import { computed, ref, toRaw } from 'vue'
+import { useRouter } from 'vue-router'
 import { type Sticker, uploadPack } from '@/api/stickerpack-upload'
 import EmoteSearch from '@/components/emote-search.vue'
+import ErrorMessage from '@/components/error-message.vue'
+import ModalLoading from '@/components/modal-loading.vue'
 import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
 import type { Emote } from '@/composables/use-emote-search'
+import { useCreatedPackStore } from '@/stores/use-created-pack'
 
 const title = ref<string>('')
 const name = ref<string>('')
 const watermark = ref<boolean>(true)
 const isPublic = ref<boolean>(true)
 const stickers = ref<Sticker[]>([])
+
 const stickerCount = computed(() => stickers.value.length)
 const maxStickers = 50 // 200 is not supported yet
+
+const router = useRouter()
+const createdPack = useCreatedPackStore()
+
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 function addEmote(emote: Emote) {
   if (stickerCount.value < maxStickers) {
@@ -53,14 +72,33 @@ function removeEmote(index: number) {
   stickers.value.splice(index, 1)
 }
 
-function createPack() {
-  uploadPack({
-    pack_name: name.value,
-    title: title.value,
-    emotes: stickers.value.map(e => toRaw(e)), // unwrapping for... reasons... emotes.value doesn't work
-    has_watermark: watermark.value,
-    is_public: isPublic.value,
-  })
+async function createPack() {
+  isLoading.value = true
+  error.value = null
+  try {
+    const response = await uploadPack({
+      pack_name: name.value,
+      title: title.value,
+      emotes: stickers.value.map(e => toRaw(e)), // unwrapping for... reasons... emotes.value doesn't work
+      has_watermark: watermark.value,
+      is_public: isPublic.value,
+    })
+
+    createdPack.createdPack = response.pack
+    router.push({
+      name: 'packDetail',
+      params: { id: response.pack.id },
+    })
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      error.value = err.message
+    } else {
+      error.value = String(err)
+    }
+    setTimeout(() => error.value = null, 4000)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -117,5 +155,21 @@ button {
   padding: 10px;
   scrollbar-color: var(--accent) var(--input);
   scrollbar-width: thin;
+}
+
+.error {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+}
+
+.v-enter-active,
+.v-leave-active {
+  transition: top 0.5s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  top: -15%;
 }
 </style>
