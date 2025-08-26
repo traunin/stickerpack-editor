@@ -34,6 +34,10 @@ const (
 	SELECT COUNT(*) FROM stickerpacks
 	WHERE user_id = $1`
 	nameExistsQuery = `SELECT EXISTS(SELECT 1 FROM stickerpacks WHERE name=$1)`
+	packOwnedQuery  = `
+	SELECT EXISTS (SELECT 1 FROM stickerpacks WHERE name=$1 AND user_id=$2)`
+	deletePackQuery = `
+	DELETE FROM stickerpacks WHERE name=$1 AND user_id=$2 RETURNING id`
 )
 
 type Postgres struct {
@@ -206,7 +210,19 @@ func (p Postgres) UserPacksCount(userID int) (int, error) {
 }
 
 func (p *Postgres) NameExists(name string) (bool, error) {
-    var exists bool
-    err := p.db.QueryRow(nameExistsQuery, name).Scan(&exists)
-    return exists, err
+	var exists bool
+	err := p.db.QueryRow(nameExistsQuery, name).Scan(&exists)
+	return exists, err
+}
+
+func (p *Postgres) IsPackOwner(name string, userID int64) (bool, error) {
+	var owned bool
+	err := p.db.QueryRow(packOwnedQuery, name, userID).Scan(&owned)
+	return owned, err
+}
+
+func (p *Postgres) DeletePack(name string, userID int64) error {
+	var deletedID int64
+	err := p.db.QueryRow(deletePackQuery, name, userID).Scan(&deletedID)
+	return err
 }

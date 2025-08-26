@@ -15,11 +15,6 @@ import (
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
-type DeletePackRequest struct {
-	UserID   int64  `json:"-"`
-	PackName string `json:"pack_name"`
-}
-
 type DeletePackResponse struct {
 	Success bool `json:"success"`
 }
@@ -42,16 +37,23 @@ var format = map[bool]string{
 	false: "static",
 }
 
-func deletePackHandler(w http.ResponseWriter, r *http.Request) {
-	req, mr := parseDeletePackRequest(w, r)
-	if mr != nil {
-		http.Error(w, mr.Error(), mr.status)
+func deletePackHandler(w http.ResponseWriter, r *http.Request, name string) {
+	userID, err := UserIDFromContext(r)
+	if err != nil {
+		http.Error(w, "Failed to parse user id", http.StatusInternalServerError)
+		return
+	}
+
+	db := config.Load().DBConn()
+	owned, err := db.IsPackOwner(name, userID)
+	if !owned || err != nil {
+		http.Error(w, "Can't confirm pack ownership", http.StatusUnauthorized)
 		return
 	}
 
 	pack, err := telegram.NewStickerPack(
-		req.UserID,
-		telegram.WithName(req.PackName),
+		userID,
+		telegram.WithValidName(name),
 	)
 
 	if err != nil {
@@ -61,52 +63,21 @@ func deletePackHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = pack.Delete()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to delete sticker pack: %v", err), http.StatusBadGateway)
+		http.Error(
+			w,
+			fmt.Sprintf("Failed to delete sticker pack: %v", err),
+			http.StatusBadGateway,
+		)
+		return
+	}
+
+	err = db.DeletePack(name, userID)
+	if err != nil {
+		http.Error(w, "Failed to delete from db", http.StatusInternalServerError)
 		return
 	}
 
 	json.NewEncoder(w).Encode(DeletePackResponse{Success: true})
-}
-
-func parseDeletePackRequest(
-	w http.ResponseWriter,
-	r *http.Request,
-) (
-	req *DeletePackRequest,
-	mr *malformedRequest,
-) {
-	err := DecodeJSONBody(w, r, &req)
-	if err != nil {
-		if errors.As(err, &mr) {
-			return
-		}
-		log.Printf("decoding error in parseDeletePacksRequest: %v", err)
-		mr = &malformedRequest{
-			status: http.StatusInternalServerError,
-			msg:    "unable to decode request",
-		}
-		return
-	}
-
-	if req.PackName == "" {
-		mr = &malformedRequest{
-			status: http.StatusBadRequest,
-			msg:    "pack name is empty",
-		}
-		return
-	}
-
-	userID, ctxErr := UserIDFromContext(r)
-	if ctxErr != nil {
-		mr = &malformedRequest{
-			status: http.StatusBadRequest,
-			msg:    ctxErr.Error(),
-		}
-		return
-	}
-	req.UserID = userID
-
-	return
 }
 
 func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string {

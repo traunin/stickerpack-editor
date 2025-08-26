@@ -195,13 +195,9 @@ func (pack *StickerPack) Create() (string, error) {
 }
 
 func (pack *StickerPack) Delete() error {
-	config := config.Load()
-	botName := config.BotName()
-	validName := fmt.Sprintf("%s_by_%s", pack.name, botName)
-
 	reqURL := requestURL("deleteStickerSet")
 	resp, err := http.PostForm(reqURL, url.Values{
-		"name": {validName},
+		"name": {pack.name},
 	})
 	if err != nil {
 		return fmt.Errorf("deleteStickerSet failed: %w", err)
