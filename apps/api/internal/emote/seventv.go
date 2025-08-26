@@ -3,8 +3,10 @@ package emote
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"log"
 	"net/http"
+
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
 
 const idLength = 26
@@ -51,28 +53,15 @@ func (e sevenTVEmote) Download() (EmoteData, error) {
 	extension := extensions[isAnimated]
 	emoteURL := fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.id, extension)
 
-	resp, err := http.Get(emoteURL)
+	data, err := downloadFile(emoteURL)
 	if err != nil {
-		return EmoteData{}, fmt.Errorf("failed to send download request for %s: %w", emoteURL, err)
+		return EmoteData{}, fmt.Errorf("failed to download emote %s: %w", e.id, err)
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return EmoteData{}, fmt.Errorf("download response invalid for %s: %d", emoteURL, resp.StatusCode)
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return EmoteData{}, fmt.Errorf("failed to read download for %s: %w", emoteURL, err)
-	}
-
-	emoteData := EmoteData{
+	return EmoteData{
 		File:     data,
 		Animated: isAnimated,
-	}
-
-	return emoteData, nil
+	}, nil
 }
 
 func (e sevenTVEmote) ID() string {
@@ -92,9 +81,28 @@ func (e sevenTVEmote) String() string {
 }
 
 func (e sevenTVEmote) isAnimated() (bool, error) {
+	retries := config.Load().DownloadRetries()
+
+	for attempt := 0; attempt < retries; attempt++ {
+		isAnimated, err := e.attemptIsAnimated()
+		if err == nil {
+			return isAnimated, nil
+		}
+
+		log.Printf("Checking animation status for %s failed %d/%d: %v", e.id, attempt+1, retries, err)
+
+		// Don't sleep after the last attempt
+		if attempt < retries-1 {
+			sleepWithBackoff(attempt)
+		}
+	}
+
+	return false, fmt.Errorf("failed to determine animation status for %s", e.id)
+}
+
+func (e sevenTVEmote) attemptIsAnimated() (bool, error) {
 	// Currently using an old api, if it's deprecated...
 	// We'll have to deal with GraphQL...
-
 	requestURL := fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.id)
 	resp, err := http.Get(requestURL)
 	if err != nil {
@@ -103,16 +111,17 @@ func (e sevenTVEmote) isAnimated() (bool, error) {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case 404:
+	case http.StatusNotFound:
 		return false, fmt.Errorf("emote does not exist")
-	case 400:
+	case http.StatusBadRequest:
 		return false, fmt.Errorf("wrong ID")
+	case http.StatusOK:
+		var info sevenTVResponse
+		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+			return false, fmt.Errorf("failed to parse 7tv response for %s: %w", requestURL, err)
+		}
+		return info.Animated, nil
+	default:
+		return false, fmt.Errorf("request to %s returned unexpected status code %d", requestURL, resp.StatusCode)
 	}
-
-	var info sevenTVResponse
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return false, fmt.Errorf("failed to parse 7tv response for %s: %w", requestURL, err)
-	}
-
-	return info.Animated, nil
 }

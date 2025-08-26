@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:17
@@ -31,6 +29,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - SECRET_KEY=${SECRET_KEY}
+      - DOWNLOAD_RETRIES=${DOWNLOAD_RETRIES}
 
 volumes:
   postgres-data:

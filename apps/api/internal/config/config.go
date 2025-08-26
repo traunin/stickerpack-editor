@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"strconv"
 	"sync"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
@@ -11,12 +12,13 @@ import (
 )
 
 type Config struct {
-	telegramToken string
-	port          string
-	botName       string
-	domain        string
-	secretKey     string
-	dbConn        *db.Postgres
+	telegramToken   string
+	port            string
+	botName         string
+	domain          string
+	secretKey       string
+	downloadRetries int
+	dbConn          *db.Postgres
 }
 
 var (
@@ -29,6 +31,7 @@ func (c *Config) Port() string          { return c.port }
 func (c *Config) BotName() string       { return c.botName }
 func (c *Config) Domain() string        { return c.domain }
 func (c *Config) SecretKey() string     { return c.secretKey }
+func (c *Config) DownloadRetries() int  { return c.downloadRetries }
 func (c *Config) DBConn() *db.Postgres  { return c.dbConn }
 
 func Load() *Config {
@@ -41,13 +44,19 @@ func Load() *Config {
 		if len(secretKey) < 32 {
 			log.Fatalln("SECRET_KEY must be >= 32 characters long")
 		}
+		downloadRetries, err := strconv.Atoi(env.Must("DOWNLOAD_RETRIES"))
+		if err != nil {
+			log.Fatalln("DOWNLOAD_RETRIES is not a number")
+		}
+
 		cfg = &Config{
-			port:          env.Fallback("PORT", "8080"),
-			domain:        env.Must("DOMAIN"),
-			telegramToken: env.Must("TELEGRAM_TOKEN"),
-			botName:       env.Must("BOT_NAME"),
-			secretKey:     secretKey,
-			dbConn:        db.NewPostgres(),
+			port:            env.Fallback("PORT", "8080"),
+			domain:          env.Must("DOMAIN"),
+			telegramToken:   env.Must("TELEGRAM_TOKEN"),
+			botName:         env.Must("BOT_NAME"),
+			secretKey:       secretKey,
+			downloadRetries: downloadRetries,
+			dbConn:          db.NewPostgres(),
 		}
 	})
 
