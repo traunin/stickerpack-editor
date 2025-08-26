@@ -1,6 +1,7 @@
 import { ref, watch, type Ref } from 'vue'
 import { fetchPacksEndpoint } from '@/api/packs'
 import type { PackResponse } from '@/types/pack'
+import { usePackEvents } from './use-packs-events'
 
 export function usePacksEndpoint(
   endpoint: string,
@@ -11,6 +12,8 @@ export function usePacksEndpoint(
   const maxPages = ref(1)
   const publicPacks = ref<PackResponse[] | null>()
   const error = ref<string | null>()
+
+  const { onPackEvent } = usePackEvents()
 
   const fetchData = async () => {
     if (!enabled.value) {
@@ -35,6 +38,12 @@ export function usePacksEndpoint(
 
   watch([page, pageSize, enabled], fetchData, { immediate: true })
 
+  onPackEvent((event) => {
+    if (event.type === 'deleted' && publicPacks.value) {
+      publicPacks.value = publicPacks.value.filter(pack => pack.name !== event.packName)
+    }
+  })
+
   function next() {
     if (page.value < maxPages.value) {
       page.value++
@@ -47,5 +56,9 @@ export function usePacksEndpoint(
     }
   }
 
-  return { publicPacks, error, page, maxPages, next, prev }
+function refetch() {
+    return fetchData()
+  }
+
+  return { publicPacks, error, page, maxPages, next, prev, refetch }
 }

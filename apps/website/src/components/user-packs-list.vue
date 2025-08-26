@@ -61,6 +61,7 @@ import { deletePack } from '@/api/pack-delete'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import StickerpackPreview from '@/components/stickerpack-preview.vue'
 import { usePacksEndpoint } from '@/composables/use-packs-endpoint'
+import { usePackEvents } from '@/composables/use-packs-events'
 import { usePageSize } from '@/composables/use-page-size'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 import ConfirmModal from './confirm-modal.vue'
@@ -75,6 +76,8 @@ const authStore = useTgAuthStore()
 
 const container = ref<HTMLElement | null>(null)
 const { pageSize, updatePageSize } = usePageSize(container)
+const { emitPackEvent } = usePackEvents()
+
 const { publicPacks, error, page, maxPages, next, prev } = usePacksEndpoint(
   'user/packs',
   pageSize,
@@ -108,6 +111,7 @@ async function removePack() {
   deletionError.value = ''
   try {
     await deletePack(deletedPackName.value)
+    emitPackEvent('deleted', deletedPackName.value)
   } catch (err: unknown) {
     if (err instanceof Error) {
       deletionError.value = err.message
