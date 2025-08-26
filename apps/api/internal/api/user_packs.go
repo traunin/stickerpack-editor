@@ -13,6 +13,7 @@ import (
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/resize"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
+	"golang.org/x/sync/errgroup"
 )
 
 type DeletePackResponse struct {
@@ -87,35 +88,54 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 	return title
 }
 
-func emotesToStickers(emotes []emote.EmoteInput) []telegram.InputSticker {
-	// TODO handle errors
+func emotesToStickers(emotes []emote.EmoteInput) ([]telegram.InputSticker, error) {
 	stickers := make([]telegram.InputSticker, len(emotes))
-	for i, input := range emotes {
-		emote, err := input.ToEmote()
-		if err != nil {
-			log.Printf("invalid emote input %s: %v", emote, err)
-			continue
-		}
+	g := new(errgroup.Group)
 
-		emoteData, err := emote.Download()
-		if err != nil {
-			log.Printf("failed downloading emote %s", emote)
-			continue
-		}
-		err = resize.FitEmote(&emoteData)
-		if err != nil {
-			log.Printf("failed resizing emote %s: %v", emote, err)
-			continue
-		}
-		stickers[i] = telegram.InputSticker{
-			Sticker:   emoteData.File,
-			Format:    format[emoteData.Animated],
-			Keywords:  emote.Keywords(),
-			EmojiList: emote.EmojiList(),
-		}
+	for i, input := range emotes {
+		i, input := i, input
+
+		g.Go(func() error {
+			sticker, err := parseEmote(input)
+			if err != nil {
+				return err
+			}
+			stickers[i] = sticker
+			return nil
+		})
 	}
 
-	return stickers
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	return stickers, nil
+}
+
+func parseEmote(input emote.EmoteInput) (telegram.InputSticker, error) {
+	emote, err := input.ToEmote()
+	if err != nil {
+		errMsg := fmt.Errorf("invalid emote input %v: %w", input, err)
+		return telegram.InputSticker{}, errMsg
+	}
+
+	emoteData, err := emote.Download()
+	if err != nil {
+		errMsg := fmt.Errorf("failed downloading emote %s: %w", emote, err)
+		return telegram.InputSticker{}, errMsg
+	}
+
+	if err := resize.FitEmote(&emoteData); err != nil {
+		errMsg := fmt.Errorf("failed resizing emote %s: %w", emote, err)
+		return telegram.InputSticker{}, errMsg
+	}
+
+	return telegram.InputSticker{
+		Sticker:   emoteData.File,
+		Format:    format[emoteData.Animated],
+		Keywords:  emote.Keywords(),
+		EmojiList: emote.EmojiList(),
+	}, nil
 }
 
 func packFromRequest(
@@ -126,7 +146,10 @@ func packFromRequest(
 	error,
 ) {
 	watermarkTitle := applyWatermark(req.Title, req.HasWatermark, cfg)
-	stickers := emotesToStickers(req.Emotes)
+	stickers, err := emotesToStickers(req.Emotes)
+	if err != nil {
+		return nil, err
+	}
 	return telegram.NewStickerPack(
 		req.UserID,
 		telegram.WithName(req.PackName),
