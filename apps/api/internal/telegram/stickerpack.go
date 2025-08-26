@@ -248,10 +248,12 @@ func PackThumbnailID(packName string) (string, error) {
 	if len(stickerSet.Stickers) > 0 {
 		firstSticker := stickerSet.Stickers[0]
 		// sticker has a thumbnail
-		if firstSticker.Thumbnail != nil && firstSticker.Thumbnail.FileID != "" {
-			return firstSticker.Thumbnail.FileID, nil
-		}
+		// if firstSticker.Thumbnail != nil && firstSticker.Thumbnail.FileID != "" {
+		// 	return firstSticker.Thumbnail.FileID, nil
+		// }
 		// fallback - the sticker itself
+		
+		// the thumbnail is not animated, always use the sticker
 		return firstSticker.FileID, nil
 	}
 
