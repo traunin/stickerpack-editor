@@ -1,4 +1,13 @@
 <template>
+  <ModalLoading v-if="isDeleting" message="The stickerpack is deleting" />
+  <Transition>
+    <ErrorMessage
+      v-if="deletionError != null"
+      :message="deletionError"
+      class="error"
+    />
+  </Transition>
+
   <div v-if="!authStore.isLoggedIn" class="unauthorized">
     Log in to see your packs
   </div>
@@ -17,11 +26,18 @@
     </div>
 
     <div v-else ref="container" class="results packs">
-      <StickerpackPreview
+      <div
         v-for="stickerpack in publicPacks"
         :key="stickerpack.id"
-        :stickerpack="stickerpack"
-      />
+        class="pack"
+      >
+        <StickerpackPreview
+          :stickerpack="stickerpack"
+        />
+        <div class="delete" @click="confirmDelete(stickerpack.name)">
+          X
+        </div>
+      </div>
     </div>
 
     <div class="forward">
@@ -30,15 +46,30 @@
       </button>
     </div>
   </div>
+
+  <ConfirmModal
+    v-if="showConfirm"
+    message="Are you sure you want to delete the pack?"
+    @cancel="cancelDelete"
+    @confirm="removePack"
+  />
 </template>
 
 <script setup lang = "ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import { deletePack } from '@/api/pack-delete'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import StickerpackPreview from '@/components/stickerpack-preview.vue'
 import { usePacksEndpoint } from '@/composables/use-packs-endpoint'
 import { usePageSize } from '@/composables/use-page-size'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
+import ConfirmModal from './confirm-modal.vue'
+import ModalLoading from './modal-loading.vue'
+
+const showConfirm = ref(false)
+const deletedPackName = ref('')
+const isDeleting = ref(false)
+const deletionError = ref('')
 
 const authStore = useTgAuthStore()
 
@@ -61,12 +92,42 @@ watch(publicPacks, async (newPacks) => {
     updatePageSize()
   }
 }, { immediate: true })
+
+function confirmDelete(name: string) {
+  deletedPackName.value = name
+  showConfirm.value = true
+}
+
+function cancelDelete() {
+  showConfirm.value = false
+  deletedPackName.value = ''
+}
+
+async function removePack() {
+  isDeleting.value = true
+  deletionError.value = ''
+  try {
+    await deletePack(deletedPackName.value)
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      deletionError.value = err.message
+    } else {
+      deletionError.value = String(err)
+    }
+    setTimeout(() => deletionError.value = '', 4000)
+  } finally {
+    isDeleting.value = false
+  }
+  showConfirm.value = false
+  deletedPackName.value = ''
+}
 </script>
 
 <style scoped>
 .packs-paginated {
   display: flex;
   gap: 20px;
+  flex: 1;
 }
 
 .results {
@@ -80,6 +141,25 @@ watch(publicPacks, async (newPacks) => {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
+}
+
+.pack {
+  position: relative;
+}
+
+.delete {
+  position: absolute;
+  cursor: pointer;
+  background: red;
+  bottom: 2px;
+  left: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 100%;
+  font-size: 1.2em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 button {
@@ -104,5 +184,21 @@ button:disabled {
   justify-content: center;
   align-items: center;
   font-size: 2em;
+}
+
+.error {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+}
+
+.v-enter-active,
+.v-leave-active {
+  transition: top 0.5s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  top: -15%;
 }
 </style>
