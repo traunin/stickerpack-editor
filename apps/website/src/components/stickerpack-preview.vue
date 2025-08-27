@@ -17,7 +17,7 @@
         playsinline
       />
     </div>
-    <a :href="tgLink" class="tg-link">
+    <a :href="tgLink" class="tg-link" target="_blank">
       <img src="@/assets/icons/tglogo.png" alt="Telegram icon">
     </a>
   </div>
