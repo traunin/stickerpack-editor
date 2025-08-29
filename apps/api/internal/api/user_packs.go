@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -88,14 +89,23 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 	return title
 }
 
-func emotesToStickers(emotes []emote.EmoteInput) ([]telegram.InputSticker, error) {
+func emotesToStickers(emotes []emote.EmoteInput, limit int) ([]telegram.InputSticker, error) {
 	stickers := make([]telegram.InputSticker, len(emotes))
-	g := new(errgroup.Group)
+	g, ctx := errgroup.WithContext(context.Background())
+
+	sem := make(chan struct{}, limit)
 
 	for i, input := range emotes {
 		i, input := i, input
 
 		g.Go(func() error {
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			defer func() { <-sem }()
+
 			sticker, err := parseEmote(input)
 			if err != nil {
 				return err
@@ -108,7 +118,6 @@ func emotesToStickers(emotes []emote.EmoteInput) ([]telegram.InputSticker, error
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
-
 	return stickers, nil
 }
 
@@ -146,7 +155,7 @@ func packFromRequest(
 	error,
 ) {
 	watermarkTitle := applyWatermark(req.Title, req.HasWatermark, cfg)
-	stickers, err := emotesToStickers(req.Emotes)
+	stickers, err := emotesToStickers(req.Emotes, 2)
 	if err != nil {
 		return nil, err
 	}
