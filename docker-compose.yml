@@ -1,3 +1,5 @@
+name: stickerpack
+
 services:
   postgres:
     image: postgres:17
@@ -9,27 +11,65 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - ${DB_PORT}:${DB_PORT}
+    restart: unless-stopped
+    networks: [internal]
+
   api:
     build:
       context: ./apps/api
     container_name: stickerpack-api
-    ports:
-      - "8080:8080"
+    environment:
+      DOMAIN: ${DOMAIN}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      BOT_NAME: ${BOT_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      DOWNLOAD_RETRIES: ${DOWNLOAD_RETRIES}
+      PORT: ${PORT}
     depends_on:
       - postgres
+    restart: unless-stopped
+    networks: [internal]
+
+  web:
+    build:
+      context: ./apps/website
+      args:
+        VITE_DOMAIN: ${DOMAIN}
+        VITE_API_URL: https://${DOMAIN}/api
+        VITE_BOT_NAME: ${BOT_NAME}
+    container_name: stickerpack-web
+    restart: unless-stopped
+    networks: [internal]
+
+  caddy:
+    image: caddy:2
+    container_name: stickerpack-edge
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     environment:
       - DOMAIN=${DOMAIN}
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
-      - BOT_NAME=${BOT_NAME}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - SECRET_KEY=${SECRET_KEY}
-      - DOWNLOAD_RETRIES=${DOWNLOAD_RETRIES}
+      - CADDY_CA=${CADDY_CA}
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:
