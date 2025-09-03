@@ -48,6 +48,7 @@ import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
 import type { Emote } from '@/composables/use-emote-search'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
+import { useTgAuthStore } from '@/stores/use-tg-auth'
 
 const title = ref<string>('')
 const name = ref<string>('')
@@ -63,11 +64,14 @@ const maxStickers = 50 // 200 is not supported yet
 
 const router = useRouter()
 const createdPack = useCreatedPackStore()
+const authStore = useTgAuthStore()
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
 const buttonError = computed(() => {
+  if (!authStore.isLoggedIn)
+    return 'You are not logged in'
   if (nameError.value)
     return nameError.value
   if (titleError.value)
