@@ -9,13 +9,17 @@
       <LoadingAnimation />
     </div>
 
+    <div v-else-if="noPacks" class="results">
+      No packs were created
+    </div>
+
     <div v-else-if="error" class="results">
       {{ error }}
     </div>
 
     <div v-else ref="container" class="results packs">
       <StickerpackPreview
-        v-for="stickerpack in publicPacks"
+        v-for="stickerpack in packs"
         :key="stickerpack.id"
         :stickerpack="stickerpack"
       />
@@ -38,14 +42,15 @@ import { usePageSize } from '@/composables/use-page-size'
 
 const container = ref<HTMLElement | null>(null)
 const { pageSize, updatePageSize } = usePageSize(container)
-const { publicPacks, error, page, maxPages, next, prev } = usePacksEndpoint('public/packs', pageSize)
+const { packs, error, page, maxPages, next, prev } = usePacksEndpoint('public/packs', pageSize)
 
-const foundPacks = computed(() => publicPacks.value?.length !== 0)
-const loading = computed(() => !foundPacks.value && error.value == null)
+const foundPacks = computed(() => (packs.value?.length ?? 0) > 0)
+const noPacks = computed(() => (packs.value?.length ?? 0) === 0)
+const loading = computed(() => foundPacks.value == null && error.value == null)
 const hasPrevPage = computed(() => page.value > 1)
 const hasNextPage = computed(() => page.value < maxPages.value)
 
-watch(publicPacks, async (newPacks) => {
+watch(packs, async (newPacks) => {
   if (newPacks && newPacks.length > 0) {
     await nextTick()
     updatePageSize()

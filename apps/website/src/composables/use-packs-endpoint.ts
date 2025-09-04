@@ -10,14 +10,14 @@ export function usePacksEndpoint(
 ) {
   const page = ref(1)
   const maxPages = ref(1)
-  const publicPacks = ref<PackResponse[] | null>()
+  const packs = ref<PackResponse[] | null>()
   const error = ref<string | null>()
 
   const { onPackEvent } = usePackEvents()
 
   const fetchData = async () => {
     if (!enabled.value) {
-      publicPacks.value = null
+      packs.value = null
       error.value = null
       page.value = 1
       maxPages.value = 1
@@ -25,10 +25,14 @@ export function usePacksEndpoint(
     }
 
     error.value = null
-    publicPacks.value = []
+    packs.value = null
     try {
-      const { packs, total } = await fetchPacksEndpoint(endpoint, page.value - 1, pageSize.value)
-      publicPacks.value = packs
+      const { packs: packsResponse, total } = await fetchPacksEndpoint(
+        endpoint,
+        page.value - 1,
+        pageSize.value
+      )
+      packs.value = packsResponse
       maxPages.value = Math.ceil(total / pageSize.value)
     } catch (e: unknown) {
       error.value = String(e)
@@ -39,8 +43,8 @@ export function usePacksEndpoint(
   watch([page, pageSize, enabled], fetchData, { immediate: true })
 
   onPackEvent((event) => {
-    if (event.type === 'deleted' && publicPacks.value) {
-      publicPacks.value = publicPacks.value.filter(pack => pack.name !== event.packName)
+    if (event.type === 'deleted' && packs.value) {
+      packs.value = packs.value.filter(pack => pack.name !== event.packName)
     }
   })
 
@@ -60,5 +64,5 @@ function refetch() {
     return fetchData()
   }
 
-  return { publicPacks, error, page, maxPages, next, prev, refetch }
+  return { packs, error, page, maxPages, next, prev, refetch }
 }
