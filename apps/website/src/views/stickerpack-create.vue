@@ -202,4 +202,15 @@ button:disabled {
   background: grey;
   cursor: default;
 }
+
+.selected-stickers > :first-child::before {
+  content: "Used as preview";
+  position: absolute;
+  top: 0;
+  height: 22.9px;
+  line-height: 22.9px;
+  padding: 0 4px;
+  background: var(--primary);
+  color: var(--text);
+}
 </style>
