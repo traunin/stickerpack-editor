@@ -3,18 +3,25 @@ package resize
 import (
 	"bytes"
 	"fmt"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
+	"github.com/disintegration/imaging"
 	"image"
 	"image/png"
-	"strconv"
-	"strings"
-
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/emote"
-	"github.com/disintegration/imaging"
+	"runtime"
+	"strconv"
+	"strings"
 )
+
+const (
+	maxVideoSize = 256 * 1024 // 256 KB
+	maxFPS       = 30
+	maxDuration  = 3.0
+)
+
+var numCPUs = runtime.NumCPU()
 
 func FitEmote(emote *emote.EmoteData) error {
 	if emote.Animated {
@@ -66,73 +73,165 @@ func fitGIF(input []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
-
 	inputPath := filepath.Join(tmpDir, "input.gif")
 	if err := os.WriteFile(inputPath, input, 0644); err != nil {
 		return nil, fmt.Errorf("failed to write input file: %w", err)
 	}
-
-	fps, err := GIFFPS(inputPath)
-	if err != nil || fps > 30 {
-		fps = 30
-	}
-
 	outputPath := filepath.Join(tmpDir, "output.webm")
 
-	// TODO cut vs speed up? file size checking?
-	cmd := exec.Command("ffmpeg",
-		"-i", inputPath,
-		"-t", "3", // 3 seconds length
-		"-r", fmt.Sprintf("%.0f", fps), // <= 30 fps
-		"-vf", "scale='if(gt(a,1),512,-1)':'if(gt(a,1),-1,512)'", // fit to 512px size
-		"-c:v", "libvpx-vp9",
-		"-pix_fmt", "yuva420p",
-		"-f", "webm",
-		"-an",          // No audio
-		"-row-mt", "1", // Multi-threading
-		"-crf", "50", // Quality, increase if Durov complains about file size
-		"-b:v", "0", // Variable bitrate
-		"-auto-alt-ref", "0", // Better for transparent videos
-		"-quality", "good", // Quality preset
-		"-cpu-used", "4", // Faster encoding
-		outputPath,
-	)
-
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("ffmpeg failed: %v\n%s", err, stderr.String())
-	}
-
-	output, err := os.ReadFile(outputPath)
+	info, err := getVideoInfo(inputPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read output file: %w", err)
+		return nil, fmt.Errorf("failed to get video info: %w", err)
 	}
 
-	return output, nil
+	fps := capFPS(info.FPS)
+	duration := capDuration(info.Duration)
+
+	encodingAttempts := encodingAttempts(duration)
+	for i, config := range encodingAttempts {
+		if err := runFFMPEG(fps, duration, inputPath, outputPath, config); err != nil {
+			if i == len(encodingAttempts)-1 {
+				return nil, fmt.Errorf("all ffmpeg attempts failed, last error: %w", err)
+			}
+			continue
+		}
+
+		output, err := os.ReadFile(outputPath)
+		if err != nil {
+			continue
+		}
+		if len(output) <= maxVideoSize {
+			return output, nil
+		}
+
+		if i == len(encodingAttempts)-1 {
+			return nil, fmt.Errorf("output exceeds 256KB after all attempts: %d bytes", len(output))
+		}
+	}
+
+	return nil, fmt.Errorf("failed to create valid output")
 }
 
-func GIFFPS(inputPath string) (float64, error) {
+type videoInfo struct {
+	FPS      float64
+	Duration float64
+	Width    int
+	Height   int
+}
+
+type encodingConfig struct {
+	bitrate string
+	crf     int
+	cpuUsed int
+}
+
+func capFPS(fps float64) float64 {
+	if fps > maxFPS || fps == 0 {
+		return maxFPS
+	}
+	return fps
+}
+
+func capDuration(duration float64) float64 {
+	if duration > maxDuration {
+		return maxDuration
+	}
+	return duration
+}
+
+func encodingAttempts(duration float64) []encodingConfig {
+	return []encodingConfig{
+		{bitrate: calculateTargetBitrate(duration, 0.85), crf: 32, cpuUsed: 1},
+		{bitrate: calculateTargetBitrate(duration, 0.75), crf: 35, cpuUsed: 2},
+		{bitrate: calculateTargetBitrate(duration, 0.65), crf: 40, cpuUsed: 3},
+		{bitrate: calculateTargetBitrate(duration, 0.55), crf: 45, cpuUsed: 4},
+	}
+}
+
+func getVideoInfo(inputPath string) (*videoInfo, error) {
 	cmd := exec.Command("ffprobe",
-		"-v", "0",
+		"-v", "quiet",
 		"-select_streams", "v:0",
-		"-show_entries", "stream=r_frame_rate",
-		"-of", "default=noprint_wrappers=1:nokey=1",
+		"-show_entries", "stream=r_frame_rate,width,height,duration",
+		"-of", "csv=p=0",
 		inputPath,
 	)
 	out, err := cmd.Output()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	parts := strings.Split(strings.TrimSpace(string(out)), "/")
-	if len(parts) == 2 {
-		num, _ := strconv.ParseFloat(parts[0], 64)
-		den, _ := strconv.ParseFloat(parts[1], 64)
+	parts := strings.Split(strings.TrimSpace(string(out)), ",")
+	if len(parts) < 4 {
+		return nil, fmt.Errorf("invalid ffprobe output: %s", out)
+	}
+
+	info := &videoInfo{}
+
+	// FPS is a fraction
+	fpsParts := strings.Split(parts[0], "/")
+	if len(fpsParts) == 2 {
+		num, _ := strconv.ParseFloat(fpsParts[0], 64)
+		den, _ := strconv.ParseFloat(fpsParts[1], 64)
 		if den != 0 {
-			return num / den, nil
+			info.FPS = num / den
 		}
 	}
-	return 0, fmt.Errorf("invalid FPS format: %s", out)
+
+	info.Width, _ = strconv.Atoi(parts[1])
+	info.Height, _ = strconv.Atoi(parts[2])
+
+	info.Duration, _ = strconv.ParseFloat(parts[3], 64)
+
+	return info, nil
+}
+
+func calculateTargetBitrate(duration float64, efficiency float64) string {
+	targetBits := float64(maxVideoSize) * efficiency * 8
+	bitrate := int(targetBits / duration)
+	return fmt.Sprintf("%dk", bitrate/1000)
+}
+
+func runFFMPEG(fps, duration float64, inputPath, outputPath string, config encodingConfig) error {
+	threads := fmt.Sprintf("%d", min(numCPUs, 4)) // cap at 4 threads
+
+	cmd := exec.Command("ffmpeg",
+		"-y",
+		"-i", inputPath,
+		"-t", fmt.Sprintf("%.2f", duration),
+		"-r", fmt.Sprintf("%.0f", fps),
+		"-vf", "scale='if(gt(a,1),512,-1)':'if(gt(a,1),-1,512)'",
+		"-c:v", "libvpx-vp9",
+		"-pix_fmt", "yuva420p",
+		"-crf", fmt.Sprintf("%d", config.crf),
+		"-b:v", config.bitrate,
+		"-maxrate", config.bitrate,
+		"-bufsize", fmt.Sprintf("%dk", parseBitrate(config.bitrate)*2),
+		"-an", // No audio
+		"-threads", threads,
+		"-row-mt", "1",
+		"-tile-columns", "2",
+		"-quality", "good",
+		"-cpu-used", fmt.Sprintf("%d", config.cpuUsed),
+		"-static-thresh", "0",
+		"-auto-alt-ref", "1",
+		"-lag-in-frames", "16",
+		"-f", "webm",
+		outputPath,
+	)
+
+	return cmd.Run()
+}
+
+func parseBitrate(bitrateStr string) int {
+	numStr := strings.TrimSuffix(bitrateStr, "k")
+	val, _ := strconv.Atoi(numStr)
+	return val
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
