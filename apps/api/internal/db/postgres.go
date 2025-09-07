@@ -203,7 +203,7 @@ func (p Postgres) UserPacks(userID int64, page, pageSize int) ([]PackResponse, e
 	return stickerpacks, nil
 }
 
-func (p Postgres) UserPacksCount(userID int) (int, error) {
+func (p Postgres) UserPacksCount(userID int64) (int, error) {
 	var count int
 	err := p.db.QueryRow(countUserPacksQuery, userID).Scan(&count)
 	return count, err

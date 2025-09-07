@@ -311,7 +311,7 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, err := db.PublicPacksCount()
+	total, err := db.UserPacksCount(userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
