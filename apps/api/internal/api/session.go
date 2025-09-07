@@ -32,8 +32,8 @@ func createSessionHandler(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Domain:   domain,
 		HttpOnly: true,
-		// Secure:   true, // enable in prod
-		// SameSite: http.SameSiteLaxMode,
+		Secure:   true, // works with https
+		SameSite: http.SameSiteStrictMode,
 	})
 	w.WriteHeader(http.StatusOK)
 }
