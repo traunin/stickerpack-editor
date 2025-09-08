@@ -23,12 +23,28 @@
         <EmoteSearch @emote-selected="addEmote" />
       </div>
       <div class="selected-stickers">
-        <StickerCreate
-          v-for="(emote, index) in stickers"
-          :key="emote.id"
-          v-model="stickers[index]"
-          @remove="removeEmote(index)"
-        />
+        <draggable
+          v-model="stickers"
+          item-key="uniqueId"
+          group="stickers"
+          handle=".drag-handle"
+          ghost-class="ghost-item"
+          chosen-class="chosen-item"
+          drag-class="drag-item"
+          class="drag-area"
+        >
+          <template #item="{ index }">
+            <div class="sticker-wrapper">
+              <div class="drag-handle">
+                ⋮⋮
+              </div>
+              <StickerCreate
+                v-model="stickers[index]"
+                @remove="removeEmote(index)"
+              />
+            </div>
+          </template>
+        </draggable>
       </div>
     </div>
     <button :disabled="!!buttonError" @click="createPack">
@@ -40,13 +56,14 @@
 <script setup lang="ts">
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
+import draggable from 'vuedraggable'
 import { type Sticker, uploadPack } from '@/api/stickerpack-upload'
-import EmoteSearch from '@/components/emote-search.vue'
+import EmoteSearch from '@/components/emote-search-7tv.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalLoading from '@/components/modal-loading.vue'
 import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
-import type { Emote } from '@/composables/use-emote-search'
+import type { Emote } from '@/composables/use-7tv-search'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 
@@ -177,7 +194,6 @@ button {
   overflow-y: auto;
   align-self: stretch;
   background: var(--panel);
-  padding: 10px;
   scrollbar-color: var(--accent) var(--input);
   scrollbar-width: thin;
 }
@@ -203,14 +219,45 @@ button:disabled {
   cursor: default;
 }
 
-.selected-stickers > :first-child::before {
-  content: "Used as preview";
+.drag-area > :first-child::before {
+  content: "Preview";
   position: absolute;
-  top: 0;
+  top: 5px;
   height: 22.9px;
   line-height: 22.9px;
   padding: 0 4px;
   background: var(--primary);
   color: var(--text);
+  z-index: 5;
+  left: 50%;
+  transform: translate(-50%);
+}
+
+.drag-area {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 202px);
+  flex: 1;
+  gap: 10px;
+  margin: 20px;
+  justify-content: center;
+}
+
+.sticker-wrapper {
+  position: relative;
+  padding: 5px;
+  background: var(--panel);
+}
+
+.drag-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text);
+  background: var(--primary);
+  cursor: grab;
+  z-index: 10;
 }
 </style>
