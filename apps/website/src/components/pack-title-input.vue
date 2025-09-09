@@ -69,5 +69,6 @@ input {
   font-size: 1.3em;
   padding: 5px;
   padding-right: 40px;
+  width: 100%;
 }
 </style>

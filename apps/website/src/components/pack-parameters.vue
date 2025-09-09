@@ -13,7 +13,7 @@
     />
     <div class="watermark">
       <input id="watermark" v-model="watermark" type="checkbox" checked>
-      <label for="watermark">Use a bot name watermark</label>
+      <label for="watermark">Bot name watermark</label>
     </div>
     <div class="public">
       <input id="public" v-model="isPublic" type="checkbox" checked>
@@ -63,16 +63,16 @@ function forwardTitleError(e: string | null) {
 }
 
 .watermark, .public {
-  flex: 1;
-  font-size: 1.5em;
+  font-size: 1.3em;
   display: flex;
-  gap: 20px;
 }
 
 input {
   align-self: stretch;
   flex: 0;
   aspect-ratio: 1;
+  margin: 0;
+  cursor: pointer;
 }
 
 .name, .title {
@@ -80,8 +80,9 @@ input {
 }
 
 label {
-  flex: 1;
-  align-self: center;
+  width: 145px;
+  padding-left: 10px;
+  cursor: pointer;
 }
 
 .sticker-count {
