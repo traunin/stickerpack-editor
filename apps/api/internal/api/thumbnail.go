@@ -6,11 +6,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
+
+const contentTypeBufferSize = 512
+var httpClient = &http.Client{Timeout: 15 * time.Second}
 
 type GetFileResponse struct {
 	Ok     bool `json:"ok"`
@@ -24,10 +26,10 @@ type GetFileResponse struct {
 
 func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Load()
-	query := r.URL.Query()
-	thumbnailID := query.Get("thumbnail_id")
-	if thumbnailID == "" {
-		http.Error(w, "missing thumbnail_id", http.StatusBadRequest)
+	
+	thumbnailID, err := extractThumbnailID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -37,29 +39,67 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var httpClient = &http.Client{Timeout: 10 * time.Second}
-	resp, err := httpClient.Get(fileURL)
-	if err != nil {
-		http.Error(w, "failed to send download request", http.StatusBadGateway)
+	if err := streamFile(w, fileURL); err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
+	}
+}
+
+func extractThumbnailID(r *http.Request) (string, error) {
+	query := r.URL.Query()
+	thumbnailID := query.Get("thumbnail_id")
+	if thumbnailID == "" {
+		return "", fmt.Errorf("missing thumbnail_id")
+	}
+	return thumbnailID, nil
+}
+
+func streamFile(w http.ResponseWriter, fileURL string) error {
+	resp, err := downloadFile(fileURL)
+	if err != nil {
+		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		http.Error(w, "download response invalid", http.StatusBadGateway)
-		return
+	// read some bits to detect file type
+	buffer := make([]byte, contentTypeBufferSize)
+	n, err := resp.Body.Read(buffer)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("failed to read response")
 	}
 
-	if strings.HasSuffix(fileURL, ".webm") {
-		w.Header().Set("Content-Type", "video/webm")
-	} else {
-		w.Header().Set("Content-Type", "image/webp")
+	contentType := detectContentType(buffer, n)
+	w.Header().Set("Content-Type", contentType)
+
+	// write buffer
+	if _, err := w.Write(buffer[:n]); err != nil {
+		return fmt.Errorf("failed to write buffer")
 	}
 
-	_, err = io.Copy(w, resp.Body)
+	// Copy the rest
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		return fmt.Errorf("streaming failed")
+	}
+
+	return nil
+}
+
+func detectContentType(buffer []byte, n int) string {
+	return http.DetectContentType(buffer[:n])
+}
+
+func downloadFile(fileURL string) (*http.Response, error) {
+	resp, err := httpClient.Get(fileURL)
 	if err != nil {
-		http.Error(w, "streaming failed", http.StatusInternalServerError)
+		return nil, fmt.Errorf("failed to send download request")
 	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("download response invalid")
+	}
+
+	return resp, nil
 }
 
 func downloadLink(cfg *config.Config, thumbnailID string) (string, error) {
@@ -69,7 +109,7 @@ func downloadLink(cfg *config.Config, thumbnailID string) (string, error) {
 		botToken,
 		url.QueryEscape(thumbnailID),
 	)
-	resp, err := http.Get(reqURL)
+	resp, err := httpClient.Get(reqURL)
 	if err != nil {
 		return "", fmt.Errorf("failed getting a download link: %w", err)
 	}
