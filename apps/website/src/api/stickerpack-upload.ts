@@ -1,13 +1,6 @@
-import type { Emote } from '@/composables/use-emote-search'
 import { API_URL } from './config'
 import type { PackResponse } from '@/types/pack'
-
-export type Source = '7tv'
-
-export interface Sticker extends Emote {
-  emoji_list: string[]
-  source: Source
-}
+import type { Sticker } from '@/types/sticker'
 
 export interface StickerpackRequest {
   pack_name: string

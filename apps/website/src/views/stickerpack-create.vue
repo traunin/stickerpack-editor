@@ -20,7 +20,7 @@
     />
     <div class="stickers">
       <div class="sticker-search">
-        <EmoteSearch @emote-selected="addEmote" />
+        <EmoteSource @sticker-selected="addSticker" />
       </div>
       <div class="selected-stickers">
         <draggable
@@ -57,15 +57,15 @@
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
-import { type Sticker, uploadPack } from '@/api/stickerpack-upload'
-import EmoteSearch from '@/components/emote-search-7tv.vue'
+import { uploadPack } from '@/api/stickerpack-upload'
+import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalLoading from '@/components/modal-loading.vue'
 import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
-import type { Emote } from '@/composables/use-7tv-search'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
+import type { Sticker } from '@/types/sticker'
 
 const title = ref<string>('')
 const name = ref<string>('')
@@ -100,9 +100,9 @@ const buttonError = computed(() => {
   return null
 })
 
-function addEmote(emote: Emote) {
+function addSticker(sticker: Sticker) {
   if (stickerCount.value < maxStickers) {
-    stickers.value.push({ ...emote, emoji_list: ['😀'], source: '7tv' })
+    stickers.value.push(sticker)
   }
 }
 

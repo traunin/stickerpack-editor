@@ -1,6 +1,6 @@
 <template>
   <div class="sticker">
-    <button class="close" @click="remove">
+    <button class="remove" @click="remove">
       ✖
     </button>
     <div class="preview">
@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Sticker } from '@/api/stickerpack-upload'
+import type { Sticker } from '@/types/sticker'
 
 const emit = defineEmits<{
   (e: 'remove'): void
@@ -61,10 +61,13 @@ input {
   padding: 5px;
   background: var(--input);
   border: 2px solid var(--primary);
-  color: var(--text)
+  color: var(--text);
+  font-size: 1.2em;
 }
 
-.close {
+.remove {
+  width: 20px;
+  line-height: 20px;
   background: #f00;
   color: var(--text);
   position: absolute;
