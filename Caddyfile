@@ -1,0 +1,22 @@
+{$DOMAIN} {
+    encode gzip zstd
+
+    @forbidden {
+        path /.git*
+        path /.env*
+        path /docker-compose.yml
+        path /Caddyfile
+    }
+    respond @forbidden 403
+
+    @api path /api*
+    handle @api {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        reverse_proxy web:80
+    }
+
+    log
+}
