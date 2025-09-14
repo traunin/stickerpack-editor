@@ -10,12 +10,15 @@
       id="emojis"
       v-model="emojisInput"
       type="text"
+      placeholder="Enter emojis only..."
+      @input="handleInput"
+      @paste="handlePaste"
     >
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick } from 'vue'
 import type { Sticker } from '@/types/sticker'
 
 const emit = defineEmits<{
@@ -33,6 +36,46 @@ const emojisInput = computed({
 
 function remove() {
   emit('remove')
+}
+
+function extractEmojis(text: string): string {
+  const emojiArray = [...text.matchAll(/([\p{Extended_Pictographic}\p{Emoji_Component}])+/gu)]
+  return emojiArray.map(match => match[0]).join('')
+}
+
+function handleInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const currentValue = target.value
+  const filteredValue = extractEmojis(currentValue)
+
+  if (currentValue !== filteredValue) {
+    emojisInput.value = filteredValue
+
+    nextTick(() => {
+      target.value = filteredValue
+      target.setSelectionRange(filteredValue.length, filteredValue.length)
+    })
+  }
+}
+
+function handlePaste(event: ClipboardEvent) {
+  event.preventDefault()
+  const pastedText = event.clipboardData?.getData('text') || ''
+  const filteredEmojis = extractEmojis(pastedText)
+
+  if (filteredEmojis) {
+    const target = event.target as HTMLInputElement
+    const start = target.selectionStart || 0
+    const end = target.selectionEnd || 0
+    const currentValue = emojisInput.value
+
+    const newValue = currentValue.substring(0, start) + filteredEmojis + currentValue.substring(end)
+    emojisInput.value = newValue
+
+    nextTick(() => {
+      target.setSelectionRange(start + filteredEmojis.length, start + filteredEmojis.length)
+    })
+  }
 }
 </script>
 
