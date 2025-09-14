@@ -34,10 +34,12 @@ func (e EmoteInput) ToEmote() (Emote, error) {
 		return nil, fmt.Errorf("max %d emojis is supported", maxEmojis)
 	}
 
-	metaKeywords := append(append([]string{}, e.Keywords...), e.Source, e.ID)
+	metaKeywords := append(append([]string{}, e.Keywords...), e.Source)
 	switch e.Source {
 	case "7tv":
 		return newSevenTVEmote(e.ID, metaKeywords, e.EmojiList)
+	case "tenor":
+		return newTenorEmote(e.ID, metaKeywords, e.EmojiList)
 	default:
 		return nil, fmt.Errorf("unsupported source %s", e.Source)
 	}
