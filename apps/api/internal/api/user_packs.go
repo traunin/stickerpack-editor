@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
@@ -89,11 +90,18 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 	return title
 }
 
-func emotesToStickers(emotes []emote.EmoteInput, limit int) ([]telegram.InputSticker, error) {
+func emotesToStickers(
+	ctx context.Context,
+	emotes []emote.EmoteInput,
+	limit int,
+	progress func(done, total int),
+) ([]telegram.InputSticker, error) {
 	stickers := make([]telegram.InputSticker, len(emotes))
-	g, ctx := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(ctx)
 
 	sem := make(chan struct{}, limit)
+	var mu sync.Mutex
+	completed := 0
 
 	for i, input := range emotes {
 		i, input := i, input
@@ -101,16 +109,21 @@ func emotesToStickers(emotes []emote.EmoteInput, limit int) ([]telegram.InputSti
 		g.Go(func() error {
 			select {
 			case sem <- struct{}{}:
+				defer func() { <-sem }()
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			defer func() { <-sem }()
 
-			sticker, err := parseEmote(input)
+			sticker, err := parseEmote(ctx, input)
 			if err != nil {
 				return err
 			}
 			stickers[i] = sticker
+
+			mu.Lock()
+			completed++
+			progress(completed, len(emotes))
+			mu.Unlock()
 			return nil
 		})
 	}
@@ -121,23 +134,32 @@ func emotesToStickers(emotes []emote.EmoteInput, limit int) ([]telegram.InputSti
 	return stickers, nil
 }
 
-func parseEmote(input emote.EmoteInput) (telegram.InputSticker, error) {
-	emote, err := input.ToEmote()
-	if err != nil {
-		errMsg := fmt.Errorf("invalid emote input %v: %w", input, err)
-		return telegram.InputSticker{}, errMsg
-	}
-
-	emoteData, err := emote.Download()
-	if err != nil {
-		errMsg := fmt.Errorf("failed downloading emote %s: %w", emote, err)
-		return telegram.InputSticker{}, errMsg
-	}
-
-	if err := resize.FitEmote(&emoteData); err != nil {
-		errMsg := fmt.Errorf("failed resizing emote %s: %w", emote, err)
-		return telegram.InputSticker{}, errMsg
-	}
+func parseEmote(ctx context.Context, input emote.EmoteInput) (telegram.InputSticker, error) {
+    emote, err := input.ToEmote()
+    if err != nil {
+        return telegram.InputSticker{}, err
+    }
+    
+    select {
+    case <-ctx.Done():
+        return telegram.InputSticker{}, ctx.Err()
+    default:
+    }
+    
+    emoteData, err := emote.Download()
+    if err != nil {
+        return telegram.InputSticker{}, err
+    }
+    
+    select {
+    case <-ctx.Done():
+        return telegram.InputSticker{}, ctx.Err()
+    default:
+    }
+    
+    if err := resize.FitEmote(&emoteData); err != nil {
+        return telegram.InputSticker{}, err
+    }
 
 	return telegram.InputSticker{
 		Sticker:   emoteData.File,
@@ -148,14 +170,13 @@ func parseEmote(input emote.EmoteInput) (telegram.InputSticker, error) {
 }
 
 func packFromRequest(
+	ctx context.Context,
 	req *CreatePackRequest,
 	cfg *config.Config,
-) (
-	*telegram.StickerPack,
-	error,
-) {
+	progress func(done, total int),
+) (*telegram.StickerPack, error) {
 	watermarkTitle := applyWatermark(req.Title, req.HasWatermark, cfg)
-	stickers, err := emotesToStickers(req.Emotes, 2)
+	stickers, err := emotesToStickers(ctx, req.Emotes, 2, progress)
 	if err != nil {
 		return nil, err
 	}
@@ -175,27 +196,50 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "SSE unsupported", http.StatusInternalServerError)
+		return
+	}
+	ctx := r.Context()
+
+	progress := func(done, total int) {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		
+		event := struct {
+			Done  int `json:"done"`
+			Total int `json:"total"`
+		}{done, total}
+		data, _ := json.Marshal(event)
+		fmt.Fprintf(w, "data: %s\n\n", data)
+		flusher.Flush()
+	}
+
 	cfg := config.Load()
-	pack, err := packFromRequest(req, cfg)
+	pack, err := packFromRequest(ctx, req, cfg, progress)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		fmt.Fprintf(w, "event: error\ndata: %q\n\n", err.Error())
+		flusher.Flush()
 		return
 	}
 
 	url, err := pack.Create()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+		fmt.Fprintf(w, "event: error\ndata: %q\n\n", err.Error())
+		flusher.Flush()
 		return
 	}
 
-	// the pack was created, but the user can't add it
-	// TODO better error handling
-	err = pack.UpdateThumbnailID()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
+	_ = pack.UpdateThumbnailID()
 	storedPack := db.NewStoredPack(
 		db.WithUserID(pack.UserID()),
 		db.WithName(pack.Name()),
@@ -205,17 +249,21 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	)
 	createdPack, err := cfg.DBConn().AddStickerpack(storedPack)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Fprintf(w, "event: error\ndata: %q\n\n", err.Error())
+		flusher.Flush()
 		return
 	}
 
-	json.NewEncoder(w).Encode(struct {
+	result := struct {
 		PackURL string           `json:"pack_url"`
 		Pack    *db.PackResponse `json:"pack"`
 	}{
 		PackURL: url,
 		Pack:    createdPack,
-	})
+	}
+	data, _ := json.Marshal(result)
+	fmt.Fprintf(w, "event: done\ndata: %s\n\n", data)
+	flusher.Flush()
 }
 
 func parseCreatePackRequest(

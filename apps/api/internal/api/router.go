@@ -50,7 +50,9 @@ func withCORS(h http.Handler) http.Handler {
 
 func withContentTypeJSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasSuffix(r.URL.Path, thumbnailRoute) {
+		if !strings.HasSuffix(r.URL.Path, thumbnailRoute) &&
+			(!strings.HasSuffix(r.URL.Path, userPacksRoute) ||
+				r.Method != http.MethodPost) {
 			w.Header().Set("Content-Type", "application/json")
 		}
 		h.ServeHTTP(w, r)
