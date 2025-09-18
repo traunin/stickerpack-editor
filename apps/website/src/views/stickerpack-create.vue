@@ -6,7 +6,7 @@
       class="error"
     />
   </Transition>
-  <ModalLoading v-if="isLoading" message="The stickerpack is creating" />
+  <ModalLoading v-if="isLoading" :message="loadingMessage" />
   <div class="creation-form">
     <PackParameters
       v-model:name="name"
@@ -57,7 +57,7 @@
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
-import { uploadPack } from '@/api/stickerpack-upload'
+import { type ProgressEvent, uploadPack } from '@/api/stickerpack-upload'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalLoading from '@/components/modal-loading.vue'
@@ -85,6 +85,14 @@ const authStore = useTgAuthStore()
 
 const isLoading = ref(false)
 const error = ref<string | null>(null)
+const progress = ref<ProgressEvent>({ done: 0, total: 0 })
+
+const loadingMessage = computed(() => {
+  if (progress.value.total === 0) {
+    return 'Starting pack creation...'
+  }
+  return `Processing stickers (${progress.value.done}/${progress.value.total})`
+})
 
 const buttonError = computed(() => {
   if (!authStore.isLoggedIn)
@@ -117,13 +125,17 @@ async function createPack() {
 
   isLoading.value = true
   error.value = null
+  progress.value = { done: 0, total: stickerCount.value }
+
   try {
     const response = await uploadPack({
       pack_name: name.value,
       title: title.value,
-      emotes: stickers.value.map(e => toRaw(e)), // unwrapping for... reasons... emotes.value doesn't work
+      emotes: stickers.value.map(e => toRaw(e)),
       has_watermark: watermark.value,
       is_public: isPublic.value,
+    }, (progressEvent: ProgressEvent) => {
+      progress.value = progressEvent
     })
 
     createdPack.createdPack = response.pack
@@ -140,6 +152,7 @@ async function createPack() {
     setTimeout(() => error.value = null, 4000)
   } finally {
     isLoading.value = false
+    progress.value = { done: 0, total: 0 }
   }
 }
 </script>

@@ -3,7 +3,13 @@
     <div class="backdrop">
       <div class="modal">
         {{ message }}
-        <LoadingAnimation />
+        <div v-if="total" class="progress-bar">
+          <div
+            class="progress"
+            :style="{ right: `${100 - ((progress ?? 0) / total) * 100}%` }"
+          />
+        </div>
+        <LoadingAnimation v-else />
       </div>
     </div>
   </Teleport>
@@ -14,6 +20,8 @@ import LoadingAnimation from '@/components/loading-animation.vue'
 
 defineProps<{
   message: string
+  total?: number
+  progress?: number
 }>()
 </script>
 
@@ -41,5 +49,21 @@ defineProps<{
   background: var(--background);
   font-size: 1.5em;
   color: var(--text);
+}
+
+.progress {
+  position: absolute;
+  background-color: var(--primary);
+  color: var(--color);
+  top: 0;
+  bottom:0;
+  left: 0;
+}
+
+.progress-bar {
+  position: relative;
+  background: grey;
+  width: 100%;
+  height: 30px;
 }
 </style>
