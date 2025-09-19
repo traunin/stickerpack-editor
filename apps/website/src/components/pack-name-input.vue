@@ -5,11 +5,7 @@
       type="text"
       placeholder="Name in links (a-z, 0-9, _)"
     >
-    <div class="icon">
-      <span v-if="loading">⏳</span>
-      <span v-else-if="error">❌</span>
-      <span v-else>✅</span>
-    </div>
+    <StatusIcon :loading="loading" :error="!!error" class="icon" />
 
     <div v-if="error" class="error">
       {{ error }}
@@ -19,6 +15,7 @@
 
 <script setup lang="ts">
 import { watch } from 'vue'
+import StatusIcon from '@/components/status-icon.vue'
 import { usePackNameCheck } from '@/composables/use-pack-name-check'
 
 const emit = defineEmits<{
@@ -41,7 +38,6 @@ watch(error, (val) => {
 
 .icon {
   position: absolute;
-  font-size: 1.2em;
   top: 0;
   bottom: 0;
   display: flex;

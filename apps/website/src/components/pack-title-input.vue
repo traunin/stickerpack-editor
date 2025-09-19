@@ -5,10 +5,7 @@
       type="text"
       placeholder="Displayed title"
     >
-    <div class="icon">
-      <span v-if="error">❌</span>
-      <span v-else>✅</span>
-    </div>
+    <StatusIcon :loading="false" :error="!!error" class="icon" />
 
     <div v-if="error" class="error">
       {{ error }}
@@ -18,6 +15,7 @@
 
 <script setup lang="ts">
 import { toRef, watch } from 'vue'
+import StatusIcon from '@/components/status-icon.vue'
 import { usePackTitleCheck } from '@/composables/use-pack-title-check'
 
 const props = defineProps<{
