@@ -73,6 +73,7 @@ input {
   aspect-ratio: 1;
   margin: 0;
   cursor: pointer;
+  height: 100%;
 }
 
 .name, .title {
