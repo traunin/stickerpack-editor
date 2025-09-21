@@ -25,11 +25,14 @@ const { trimmed } = useTrimmedString(props.emote.name, 30)
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  background: var(--panel);
 }
 
 .emote:hover {
-  background: var(--accent);
+  background: var(--accent) !important;
+}
+
+.emote:nth-child(even) {
+  background: var(--panel);
 }
 
 .name {

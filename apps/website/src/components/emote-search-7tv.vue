@@ -78,6 +78,10 @@ function selectEmote(emote: Emote) {
   background: var(--panel);
 }
 
+.stickers {
+  background: var(--panel)
+}
+
 .results {
   flex: 1;
   display: flex;

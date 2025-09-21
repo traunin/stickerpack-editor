@@ -19,11 +19,14 @@ defineProps<{
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  background: var(--panel);
 }
 
 .emote:hover {
-  background: var(--accent);
+  background: var(--accent) !important;
+}
+
+.emote:nth-child(even) {
+  background: var(--panel);
 }
 
 img {

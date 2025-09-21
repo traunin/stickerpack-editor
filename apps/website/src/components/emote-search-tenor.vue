@@ -86,6 +86,10 @@ function selectSticker(emote: Emote) {
   scrollbar-width: thin;
 }
 
+.stickers {
+  background: var(--panel)
+}
+
 .search {
   background: var(--input);
   color: var(--text);
