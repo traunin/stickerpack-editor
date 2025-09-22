@@ -6,7 +6,12 @@
       class="error"
     />
   </Transition>
-  <ModalLoading v-if="isLoading" :message="loadingMessage" />
+  <ModalLoading
+    v-if="isLoading"
+    :message="loadingMessage"
+    :total="progress.total"
+    :progress="progress.done"
+  />
   <div class="creation-form">
     <PackParameters
       v-model:name="name"
