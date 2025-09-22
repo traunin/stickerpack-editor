@@ -53,8 +53,8 @@ onMounted(async () => {
   align-items: center;
   color: var(--text);
   border: 2px solid var(--text);
-  width: 200px;
-  height: 200px;
+  width: 202px;
+  height: 202px;
   position: relative;
   background: var(--background);
 }

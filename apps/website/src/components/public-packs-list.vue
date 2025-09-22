@@ -78,7 +78,7 @@ watch(packs, async (newPacks) => {
 }
 
 button {
-  height: 200px;
+  height: 202px;
   padding: 10px;
   font-weight: 900;
   color: var(--text);
@@ -91,6 +91,6 @@ button {
 
 button:disabled {
   color: red;
-  cursor:default
+  cursor: default
 }
 </style>
