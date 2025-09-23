@@ -58,7 +58,6 @@ services:
       - caddy-config:/config
     environment:
       - DOMAIN=${DOMAIN}
-      - CADDY_CA=${CADDY_CA}
     depends_on:
       - web
       - api
