@@ -30,6 +30,10 @@ export function usePackNameCheck(name: MaybeRef<string>) {
   const unwrapped = computed(() => unref(name))
   const debounced = useDebounce(unwrapped, 300)
 
+  watch(unwrapped, () => {
+    loading.value = true
+  })
+
   watch(debounced, async (newName) => {
     available.value = null
     error.value = null
@@ -37,6 +41,7 @@ export function usePackNameCheck(name: MaybeRef<string>) {
     const validationError = validateName(newName)
     if (validationError) {
       error.value = validationError
+      loading.value = false
       return
     }
 

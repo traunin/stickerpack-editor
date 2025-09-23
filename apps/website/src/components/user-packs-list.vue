@@ -2,12 +2,11 @@
   <ModalLoading v-if="isDeleting" message="The stickerpack is deleting" />
   <Transition>
     <ErrorMessage
-      v-if="deletionError != null"
+      v-if="deletionError"
       :message="deletionError"
       class="error"
     />
   </Transition>
-
   <div v-if="!authStore.isLoggedIn" class="unauthorized">
     Log in to see your packs
   </div>
@@ -20,15 +19,12 @@
     <div v-if="loading" class="results loading">
       <LoadingAnimation />
     </div>
-
     <div v-else-if="noPacks" class="results">
       You don't have any packs
     </div>
-
     <div v-else-if="error" class="results">
       {{ error }}
     </div>
-
     <div v-else ref="container" class="results packs">
       <div
         v-for="stickerpack in packs"
@@ -43,14 +39,12 @@
         </div>
       </div>
     </div>
-
     <div class="forward">
       <button :disabled="!hasNextPage" @click="next">
         &gt;
       </button>
     </div>
   </div>
-
   <ConfirmModal
     v-if="showConfirm"
     message="Are you sure you want to delete the pack?"
@@ -59,40 +53,56 @@
   />
 </template>
 
-<script setup lang = "ts">
+<script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { deletePack } from '@/api/pack-delete'
+import ConfirmModal from '@/components/confirm-modal.vue'
+import ErrorMessage from '@/components/error-message.vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
+import ModalLoading from '@/components/modal-loading.vue'
 import StickerpackPreview from '@/components/stickerpack-preview.vue'
-import { usePacksEndpoint } from '@/composables/use-packs-endpoint'
-import { usePackEvents } from '@/composables/use-packs-events'
+import { useDeletePackMutation } from '@/composables/use-delete-pack-mutation'
 import { usePageSize } from '@/composables/use-page-size'
+import { useUserPacks } from '@/composables/use-user-packs'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
-import ConfirmModal from './confirm-modal.vue'
-import ModalLoading from './modal-loading.vue'
 
 const showConfirm = ref(false)
 const deletedPackName = ref('')
-const isDeleting = ref(false)
-const deletionError = ref('')
 
 const authStore = useTgAuthStore()
-
 const container = ref<HTMLElement | null>(null)
 const { pageSize, updatePageSize } = usePageSize(container)
-const { emitPackEvent } = usePackEvents()
+const page = ref(1)
 
-const { packs, error, page, maxPages, next, prev } = usePacksEndpoint(
-  'user/packs',
+const { data, error, isFetching, isLoading } = useUserPacks(
+  page,
   pageSize,
   computed(() => authStore.isLoggedIn),
 )
 
-const foundPacks = computed(() => (packs.value?.length ?? 0) > 0)
-const noPacks = computed(() => (packs.value?.length ?? 0) === 0)
-const loading = computed(() => foundPacks.value == null && error.value == null)
+const deletePackMutation = useDeletePackMutation()
+
+const packs = computed(() => data.value?.packs ?? [])
+const maxPages = computed(() => data.value ? Math.ceil(data.value.total / pageSize.value) : 1)
+
+const noPacks = computed(() => !isFetching.value && packs.value.length === 0)
+const loading = computed(() => isLoading.value)
 const hasPrevPage = computed(() => page.value > 1)
 const hasNextPage = computed(() => page.value < maxPages.value)
+
+const isDeleting = computed(() => deletePackMutation.isPending.value)
+const deletionError = computed(() => deletePackMutation.deletionError.value)
+
+function next() {
+  if (page.value < maxPages.value) {
+    page.value++
+  }
+}
+
+function prev() {
+  if (page.value > 1) {
+    page.value--
+  }
+}
 
 watch(packs, async (newPacks) => {
   if (newPacks && newPacks.length > 0) {
@@ -112,23 +122,14 @@ function cancelDelete() {
 }
 
 async function removePack() {
-  isDeleting.value = true
-  deletionError.value = ''
   try {
-    await deletePack(deletedPackName.value)
-    emitPackEvent('deleted', deletedPackName.value)
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      deletionError.value = err.message
-    } else {
-      deletionError.value = String(err)
-    }
-    setTimeout(() => deletionError.value = '', 4000)
+    await deletePackMutation.mutateAsync(deletedPackName.value)
+  } catch (error) {
+    console.error(error)
   } finally {
-    isDeleting.value = false
+    showConfirm.value = false
+    deletedPackName.value = ''
   }
-  showConfirm.value = false
-  deletedPackName.value = ''
 }
 </script>
 

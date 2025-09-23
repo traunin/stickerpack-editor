@@ -1,13 +1,13 @@
 <template>
   <Transition>
     <ErrorMessage
-      v-if="error != null"
-      :message="error"
+      v-if="uploadError"
+      :message="uploadError"
       class="error"
     />
   </Transition>
   <ModalLoading
-    v-if="isLoading"
+    v-if="isUploading"
     :message="loadingMessage"
     :total="progress.total"
     :progress="progress.done"
@@ -62,12 +62,13 @@
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
-import { type ProgressEvent, uploadPack } from '@/api/stickerpack-upload'
+import type { ProgressEvent } from '@/api/stickerpack-upload'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalLoading from '@/components/modal-loading.vue'
 import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
+import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 import type { Sticker } from '@/types/sticker'
@@ -80,6 +81,7 @@ const stickers = ref<Sticker[]>([])
 
 const nameError = ref<string | null>(null)
 const titleError = ref<string | null>(null)
+const progress = ref<ProgressEvent>({ done: 0, total: 0 })
 
 const stickerCount = computed(() => stickers.value.length)
 const maxStickers = 50 // 200 is not supported yet
@@ -88,9 +90,10 @@ const router = useRouter()
 const createdPack = useCreatedPackStore()
 const authStore = useTgAuthStore()
 
-const isLoading = ref(false)
-const error = ref<string | null>(null)
-const progress = ref<ProgressEvent>({ done: 0, total: 0 })
+const uploadPackMutation = useUploadPackMutation()
+
+const isUploading = computed(() => uploadPackMutation.isPending.value)
+const uploadError = computed(() => uploadPackMutation.uploadError.value)
 
 const loadingMessage = computed(() => {
   if (progress.value.total === 0) {
@@ -128,19 +131,20 @@ async function createPack() {
     return
   }
 
-  isLoading.value = true
-  error.value = null
   progress.value = { done: 0, total: stickerCount.value }
 
   try {
-    const response = await uploadPack({
-      pack_name: name.value,
-      title: title.value,
-      emotes: stickers.value.map(e => toRaw(e)),
-      has_watermark: watermark.value,
-      is_public: isPublic.value,
-    }, (progressEvent: ProgressEvent) => {
-      progress.value = progressEvent
+    const response = await uploadPackMutation.mutateAsync({
+      request: {
+        pack_name: name.value,
+        title: title.value,
+        emotes: stickers.value.map(e => toRaw(e)),
+        has_watermark: watermark.value,
+        is_public: isPublic.value,
+      },
+      onProgress: (progressEvent: ProgressEvent) => {
+        progress.value = progressEvent
+      },
     })
 
     createdPack.createdPack = response.pack
@@ -148,15 +152,9 @@ async function createPack() {
       name: 'packCreated',
       params: { id: response.pack.id },
     })
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      error.value = err.message
-    } else {
-      error.value = String(err)
-    }
-    setTimeout(() => error.value = null, 4000)
+  } catch (error) {
+    console.error(error)
   } finally {
-    isLoading.value = false
     progress.value = { done: 0, total: 0 }
   }
 }

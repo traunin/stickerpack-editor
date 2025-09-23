@@ -1,4 +1,4 @@
-import { API_URL } from './config'
+import { API_URL } from '@/api/config'
 import type { PackResponse } from '@/types/pack'
 
 export interface PacksResponse {
@@ -6,7 +6,7 @@ export interface PacksResponse {
   total: number
 }
 
-export async function fetchPacksEndpoint(endpoint: string, page = 0, pageSize = 10) {
+async function fetchPacksEndpoint(endpoint: string, page = 0, pageSize = 10) {
   const query = new URLSearchParams({
     page: page.toString(),
     page_size: pageSize.toString(),
@@ -24,4 +24,13 @@ export async function fetchPacksEndpoint(endpoint: string, page = 0, pageSize = 
 
   const json: PacksResponse = await res.json()
   return json
+}
+
+
+export async function fetchUserPacks(page = 0, pageSize = 10) {
+  return fetchPacksEndpoint('user/packs', page, pageSize)
+}
+
+export async function fetchPublicPacks(page = 0, pageSize = 10) {
+  return fetchPacksEndpoint('public/packs', page, pageSize)
 }
