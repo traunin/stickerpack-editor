@@ -4,14 +4,18 @@
       {{ trimmed }}
     </div>
     <div class="preview">
+      <LoadingAnimation v-if="isLoading" />
+      <div v-else-if="error" class="error">
+        Failed to load
+      </div>
       <img
-        v-if="!isVideo && mediaURL"
-        :src="mediaURL"
+        v-else-if="thumbnailData && !thumbnailData.isVideo"
+        :src="thumbnailData.url"
         alt="Stickerpack preview"
       >
       <video
-        v-else-if="isVideo"
-        :src="mediaURL ?? ''"
+        v-else-if="thumbnailData?.isVideo"
+        :src="thumbnailData.url"
         autoplay
         loop
         playsinline
@@ -24,26 +28,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { API_URL } from '@/api/config'
+import { useThumbnail } from '@/composables/use-thumbnail'
 import { useTrimmedString } from '@/composables/use-trimmed-string'
 import type { PackResponse } from '@/types/pack'
+import LoadingAnimation from './loading-animation.vue'
 
 const props = defineProps<{ stickerpack: PackResponse }>()
 
-const mediaURL = ref<string | null>(null)
-const isVideo = ref(false)
 const { trimmed } = useTrimmedString(props.stickerpack.title, 18)
 const tgLink = `https://t.me/addstickers/${props.stickerpack.name}`
 
-onMounted(async () => {
-  const url = `${API_URL}/thumbnail?thumbnail_id=${props.stickerpack.thumbnail_id}`
-  const res = await fetch(url)
-  const blob = await res.blob()
-
-  isVideo.value = blob.type === 'video/webm'
-  mediaURL.value = URL.createObjectURL(blob)
-})
+const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack.thumbnail_id)
 </script>
 
 <style scoped>
@@ -57,6 +52,10 @@ onMounted(async () => {
   height: 202px;
   position: relative;
   background: var(--background);
+}
+
+.error {
+  color: red;
 }
 
 .preview {
