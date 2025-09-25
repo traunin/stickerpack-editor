@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"github.com/patrickmn/go-cache"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
 
 const contentTypeBufferSize = 512
 var httpClient = &http.Client{Timeout: 15 * time.Second}
+var urlCache = cache.New(55 * time.Minute, 20 * time.Minute)
 
 type GetFileResponse struct {
 	Ok     bool `json:"ok"`
@@ -33,7 +35,7 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileURL, err := downloadLink(cfg, thumbnailID)
+	fileURL, err := getCachedOrFetchURL(cfg, thumbnailID)
 	if err != nil {
 		http.Error(w, "failed getting a download link", http.StatusBadGateway)
 		return
@@ -43,6 +45,19 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+}
+
+func getCachedOrFetchURL(cfg *config.Config, thumbnailID string) (string, error) {
+	if url, found := urlCache.Get(thumbnailID); found {
+		return url.(string), nil
+	}
+
+    fileURL, err := downloadLink(cfg, thumbnailID)
+    if err != nil {
+        return "", err
+    }
+    urlCache.Set(thumbnailID, fileURL, cache.DefaultExpiration)
+    return fileURL, nil
 }
 
 func extractThumbnailID(r *http.Request) (string, error) {
