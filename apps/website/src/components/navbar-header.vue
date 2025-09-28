@@ -8,7 +8,7 @@
           class="link"
           active-class="active"
         >
-          <span>Stickerpack overview</span>
+          <span>Packs</span>
         </RouterLink>
       </li>
     </ul>
@@ -27,21 +27,19 @@ import TelegramLogin from '@/components/telegram-login.vue'
 h1 {
   font-size: 1.5em;
   text-align: center;
-  padding: 20px;
-  position: absolute;
-  left: 20px;
 }
 
 nav {
   display: flex;
   background: var(--secondary);
-  padding: 1px;
+  padding: 0 20px;
+  align-items: center;
+  gap: 20px;
 }
 
 ul {
   display: flex;
   flex: 1;
-  justify-content: center;
 }
 
 li {
@@ -71,13 +69,5 @@ li {
 
 .active:hover {
   border-color: var(--text);
-}
-
-.tg-auth {
-  padding: 10px 20px;
-  position: absolute;
-  right: 20px;
-  display: flex;
-  align-items: center;
 }
 </style>
