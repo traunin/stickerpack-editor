@@ -28,24 +28,25 @@ export function usePackNameCheck(name: MaybeRef<string>) {
   const loading = ref(false)
 
   const unwrapped = computed(() => unref(name))
-  const debounced = useDebounce(unwrapped, 300)
-
-  watch(unwrapped, () => {
-    loading.value = true
-  })
-
-  watch(debounced, async (newName) => {
-    available.value = null
-    error.value = null
-
-    const validationError = validateName(newName)
+  
+  const validated = computed(() => {
+    const validationError = validateName(unwrapped.value)
     if (validationError) {
       error.value = validationError
-      loading.value = false
-      return
+      return null
     }
-
+    error.value = null
     loading.value = true
+
+    return unwrapped.value
+  })
+  
+  const debounced = useDebounce(validated, 300)
+
+  watch(debounced, async (newName) => {
+    if (!newName) return
+
+    available.value = null
     try {
       const res = await fetch(`${API_URL}/user/packs/${encodeURIComponent(newName)}`, {
         method: 'HEAD',
