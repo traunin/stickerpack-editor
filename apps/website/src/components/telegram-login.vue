@@ -11,7 +11,7 @@
       {{ authStore.username }}
     </div>
     <button @click="authStore.logOut">
-      Log out
+      <div class="logout" />
     </button>
   </div>
 </template>
@@ -71,13 +71,16 @@ img {
 }
 
 button {
-  color: var(--text);
   background: var(--primary);
-  font-size: 1.1em;
-  align-self: stretch;
   border: none;
   cursor: pointer;
-  padding: 0 10px;
   border-radius: 0 10px 10px 0;
+}
+
+.logout {
+  mask: no-repeat center url("@/assets/icons/logout.svg");
+  background-color: var(--text);
+  height: 40px;
+  width: 60px;
 }
 </style>
