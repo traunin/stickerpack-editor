@@ -3,7 +3,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import { createApp } from 'vue'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import App from '@/app.vue'
-import router from '@/routes'
+import router from '@/router'
 
 import './reset.css'
 import './style.css'

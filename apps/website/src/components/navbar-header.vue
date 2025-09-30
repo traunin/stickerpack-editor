@@ -1,26 +1,21 @@
 <template>
-  <nav>
+  <header>
     <h1>Stickerpack editor</h1>
-    <ul>
-      <li>
-        <RouterLink
-          to="/"
-          class="link"
-          active-class="active"
-        >
-          <span>Packs</span>
-        </RouterLink>
-      </li>
-    </ul>
-
-    <div class="tg-auth">
-      <TelegramLogin />
-    </div>
-  </nav>
+    <nav>
+      <NavbarElement
+        v-for="route in navbarRoutes"
+        :key="route.path"
+        :route="route"
+      />
+    </nav>
+    <TelegramLogin />
+  </header>
 </template>
 
 <script setup lang="ts">
 import TelegramLogin from '@/components/telegram-login.vue'
+import { navbarRoutes } from '@/router'
+import NavbarElement from '@/components/navbar-element.vue';
 </script>
 
 <style scoped>
@@ -29,45 +24,16 @@ h1 {
   text-align: center;
 }
 
-nav {
+header {
   display: flex;
   background: var(--secondary);
   padding: 0 20px;
-  align-items: center;
   gap: 20px;
-}
-
-ul {
-  display: flex;
-  flex: 1;
-}
-
-li {
-  display: flex;
-}
-
-.link {
-  padding: 20px;
-  text-decoration: none;
-  color: var(--text);
-  font-size: 1.2em;
-  border-left: 3px solid var(--secondary);
-  border-right: 3px solid var(--secondary);
-  display: flex;
-  justify-content: center;
   align-items: center;
 }
 
-.link:hover {
-  background: var(--accent);
-  border-color: var(--accent)
-}
-
-.active {
-  border-color: var(--text)
-}
-
-.active:hover {
-  border-color: var(--text);
+nav {
+  flex: 1;
+  display: flex;
 }
 </style>
