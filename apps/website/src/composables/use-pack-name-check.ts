@@ -30,12 +30,15 @@ export function usePackNameCheck(name: MaybeRef<string>) {
   const unwrapped = computed(() => unref(name))
   
   const validated = computed(() => {
+    available.value = null
     const validationError = validateName(unwrapped.value)
     if (validationError) {
       error.value = validationError
+      available.value = false
+      loading.value = false
       return null
     }
-    error.value = null
+    error.value = "Checking if name is taken..."
     loading.value = true
 
     return unwrapped.value
@@ -45,21 +48,24 @@ export function usePackNameCheck(name: MaybeRef<string>) {
 
   watch(debounced, async (newName) => {
     if (!newName) return
-
-    available.value = null
+    
     try {
       const res = await fetch(`${API_URL}/user/packs/${encodeURIComponent(newName)}`, {
         method: 'HEAD',
       })
-      if (res.status == 200) {
+      available.value = res.status != 200
+      if (!available.value) {
         error.value = "Name taken"
-      } 
+      } else {
+        error.value = null
+      }
     } catch {
+      available.value = false
       error.value = 'Network error'
     } finally {
       loading.value = false
     }
   }, { immediate: true })
 
-  return { error, loading }
+  return { available, error, loading }
 }

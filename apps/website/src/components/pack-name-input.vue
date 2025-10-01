@@ -5,9 +5,8 @@
       type="text"
       placeholder="Name in links (a-z, 0-9, _)"
     >
-    <StatusIcon :loading="loading" :error="!!error" class="icon" />
-
-    <div v-if="error" class="error">
+    <StatusIcon :loading="loading" :error="available === false" class="icon" />
+    <div v-if="available === false" class="error">
       {{ error }}
     </div>
   </div>
@@ -23,10 +22,10 @@ const emit = defineEmits<{
 }>()
 
 const name = defineModel<string>({ default: '' })
-const { error, loading } = usePackNameCheck(name)
+const { available, error, loading } = usePackNameCheck(name)
 
-watch(error, (val) => {
-  emit('error', val)
+watch([available, error], () => {
+  emit('error', error.value)
 }, { immediate: true })
 </script>
 
