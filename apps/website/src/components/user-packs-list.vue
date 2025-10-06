@@ -1,56 +1,58 @@
 <template>
-  <ModalLoading v-if="isDeleting" message="The stickerpack is deleting" />
-  <Transition>
-    <ErrorMessage
-      v-if="deletionError"
-      :message="deletionError"
-      class="error"
-    />
-  </Transition>
-  <div v-if="!authStore.isLoggedIn" class="unauthorized">
-    Log in to see your packs
-  </div>
-  <div v-else class="packs-paginated">
-    <div class="back">
-      <button :disabled="!hasPrevPage" @click="prev">
-        &lt;
-      </button>
+  <div class="user-packs">
+    <ModalLoading v-if="isDeleting" message="The stickerpack is deleting" />
+    <Transition>
+      <ErrorMessage
+        v-if="deletionError"
+        :message="deletionError"
+        class="error"
+      />
+    </Transition>
+    <div v-if="!authStore.isLoggedIn" class="unauthorized">
+      Log in to see your packs
     </div>
-    <div v-if="loading" class="results loading">
-      <LoadingAnimation />
-    </div>
-    <div v-else-if="noPacks" class="results">
-      You don't have any packs
-    </div>
-    <div v-else-if="error" class="results">
-      {{ error }}
-    </div>
-    <div v-else ref="container" class="results packs">
-      <div
-        v-for="stickerpack in packs"
-        :key="stickerpack.id"
-        class="pack"
-      >
-        <StickerpackPreview
-          :stickerpack="stickerpack"
-        />
-        <div class="delete" @click="confirmDelete(stickerpack.name)">
-          X
+    <div v-else class="packs-paginated">
+      <div class="back">
+        <button :disabled="!hasPrevPage" @click="prev">
+          &lt;
+        </button>
+      </div>
+      <div v-if="loading" class="results loading">
+        <LoadingAnimation />
+      </div>
+      <div v-else-if="noPacks" class="results">
+        You don't have any packs
+      </div>
+      <div v-else-if="error" class="results">
+        {{ error }}
+      </div>
+      <div v-else ref="container" class="results packs">
+        <div
+          v-for="stickerpack in packs"
+          :key="stickerpack.id"
+          class="pack"
+        >
+          <StickerpackPreview
+            :stickerpack="stickerpack"
+          />
+          <div class="delete" @click="confirmDelete(stickerpack.name)">
+            X
+          </div>
         </div>
       </div>
+      <div class="forward">
+        <button :disabled="!hasNextPage" @click="next">
+          &gt;
+        </button>
+      </div>
     </div>
-    <div class="forward">
-      <button :disabled="!hasNextPage" @click="next">
-        &gt;
-      </button>
-    </div>
+    <ConfirmModal
+      v-if="showConfirm"
+      message="Are you sure you want to delete the pack?"
+      @cancel="cancelDelete"
+      @confirm="removePack"
+    />
   </div>
-  <ConfirmModal
-    v-if="showConfirm"
-    message="Are you sure you want to delete the pack?"
-    @cancel="cancelDelete"
-    @confirm="removePack"
-  />
 </template>
 
 <script setup lang="ts">
