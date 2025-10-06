@@ -4,9 +4,15 @@ import type { RouteRecordRaw } from 'vue-router'
 export const routes: RouteRecordRaw[] = [
     { 
       path: '/',
-      alias: '/stickerpacks',
-      name: 'Packs',
-      component: () => import('@/views/stickerpack-overview.vue'),
+      alias: '/user',
+      name: 'User packs',
+      component: () => import('@/views/user-packs.vue'),
+      meta: { inNavbar: true }
+    },
+    { 
+      path: '/shared',
+      name: 'Shared packs',
+      component: () => import('@/views/shared-packs.vue'),
       meta: { inNavbar: true }
     },
     {
