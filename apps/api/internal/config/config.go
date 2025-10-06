@@ -18,6 +18,7 @@ type Config struct {
 	domain          string
 	secretKey       string
 	downloadRetries int
+	queueWorkers    int
 	dbConn          *db.Postgres
 }
 
@@ -32,6 +33,7 @@ func (c *Config) BotName() string       { return c.botName }
 func (c *Config) Domain() string        { return c.domain }
 func (c *Config) SecretKey() string     { return c.secretKey }
 func (c *Config) DownloadRetries() int  { return c.downloadRetries }
+func (c *Config) QueueWorkers() int     { return c.queueWorkers }
 func (c *Config) DBConn() *db.Postgres  { return c.dbConn }
 
 func Load() *Config {
@@ -49,6 +51,11 @@ func Load() *Config {
 			log.Fatalln("DOWNLOAD_RETRIES is not a number")
 		}
 
+		queueWorkers, err := strconv.Atoi(env.Fallback("QUEUE_WORKERS", "1"))
+		if err != nil {
+			log.Fatalln("QUEUE_WORKERS is not a number")
+		}
+
 		cfg = &Config{
 			port:            env.Fallback("PORT", "8080"),
 			domain:          env.Must("DOMAIN"),
@@ -56,6 +63,7 @@ func Load() *Config {
 			botName:         env.Must("BOT_NAME"),
 			secretKey:       secretKey,
 			downloadRetries: downloadRetries,
+			queueWorkers:    queueWorkers,
 			dbConn:          db.NewPostgres(),
 		}
 	})

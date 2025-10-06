@@ -6,7 +6,7 @@
       class="error"
     />
   </Transition>
-  <ModalLoading
+  <ModalProgress
     v-if="isUploading"
     :message="loadingMessage"
     :total="progress.total"
@@ -65,7 +65,7 @@ import draggable from 'vuedraggable'
 import type { ProgressEvent } from '@/api/stickerpack-upload'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
-import ModalLoading from '@/components/modal-loading.vue'
+import ModalProgress from '@/components/modal-progress.vue'
 import PackParameters from '@/components/pack-parameters.vue'
 import StickerCreate from '@/components/sticker-create.vue'
 import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'

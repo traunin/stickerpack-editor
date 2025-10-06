@@ -1,10 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/queue"
 )
 
 const (
@@ -14,6 +16,8 @@ const (
 	userPackRoute    = "/user/packs/"
 	sessionRoute     = "/session"
 	thumbnailRoute   = "/thumbnail"
+	jobStatusRoute   = "/job/"
+	queueStatusRoute = "/queue"
 )
 
 var noAuthRoutes = []NoAuthRoute{
@@ -21,8 +25,12 @@ var noAuthRoutes = []NoAuthRoute{
 	{Path: baseRoute + publicPacksRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: baseRoute + userPackRoute, Method: http.MethodHead, PrefixMatch: true},
 	{Path: baseRoute + thumbnailRoute, Method: http.MethodGet, PrefixMatch: false},
+	// {Path: baseRoute + jobStatusRoute, Method: http.MethodGet, PrefixMatch: true},
+	{Path: baseRoute + queueStatusRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
 }
+
+var jobQueue *queue.Queue
 
 func withCORS(h http.Handler) http.Handler {
 	domain := config.Load().Domain()
@@ -51,8 +59,7 @@ func withCORS(h http.Handler) http.Handler {
 func withContentTypeJSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, thumbnailRoute) &&
-			(!strings.HasSuffix(r.URL.Path, userPacksRoute) ||
-				r.Method != http.MethodPost) {
+			!strings.HasPrefix(r.URL.Path, baseRoute+jobStatusRoute) {
 			w.Header().Set("Content-Type", "application/json")
 		}
 		h.ServeHTTP(w, r)
@@ -60,18 +67,19 @@ func withContentTypeJSON(h http.Handler) http.Handler {
 }
 
 func SetupRouter() http.Handler {
-	mux := http.NewServeMux()
+	cfg := config.Load()
+	jobQueue = queue.NewQueue(cfg.QueueWorkers())
 
+	mux := http.NewServeMux()
 	api := http.NewServeMux()
 
 	api.HandleFunc(sessionRoute, sessionHandler)
-
 	api.HandleFunc(publicPacksRoute, publicPacksHandler)
-
 	api.HandleFunc(userPackRoute, userPackHandler)
 	api.HandleFunc(userPacksRoute, userPacksHandler)
-
 	api.HandleFunc(thumbnailRoute, thumbnailHandler)
+	api.HandleFunc(jobStatusRoute, jobStatusHandler)
+	api.HandleFunc(queueStatusRoute, queueStatsHandler)
 
 	mux.Handle(baseRoute+"/", http.StripPrefix(baseRoute, api))
 
@@ -130,4 +138,30 @@ func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func jobStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	jobID := strings.TrimPrefix(r.URL.Path, jobStatusRoute)
+	if jobID == "" {
+		http.Error(w, "Missing job ID", http.StatusBadRequest)
+		return
+	}
+
+	jobQueue.SSEHandler(w, r, jobID)
+}
+
+func queueStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	stats := jobQueue.GetQueueStats()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }

@@ -90,7 +90,45 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 	return title
 }
 
-func emotesToStickers(
+type CreatePackJobHandler struct {
+	cfg *config.Config
+	req *CreatePackRequest
+}
+
+func NewCreatePackJobHandler(cfg *config.Config, req *CreatePackRequest) *CreatePackJobHandler {
+	return &CreatePackJobHandler{cfg: cfg, req: req}
+}
+
+func (h *CreatePackJobHandler) GetJobType() string {
+	return "create_stickerpack"
+}
+
+func createPackHandler(w http.ResponseWriter, r *http.Request) {
+	req, mr := parseCreatePackRequest(w, r)
+	if mr != nil {
+		http.Error(w, mr.Error(), mr.status)
+		return
+	}
+
+	cfg := config.Load()
+	handler := NewCreatePackJobHandler(cfg, req)
+
+	jobID, err := jobQueue.Enqueue(handler, r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to enqueue job: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"job_id": jobID,
+		"status": "queued",
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *CreatePackJobHandler) emotesToStickers(
 	ctx context.Context,
 	emotes []emote.EmoteInput,
 	limit int,
@@ -122,8 +160,8 @@ func emotesToStickers(
 
 			mu.Lock()
 			completed++
-			progress(completed, len(emotes))
 			mu.Unlock()
+			progress(completed, len(emotes))
 			return nil
 		})
 	}
@@ -135,31 +173,31 @@ func emotesToStickers(
 }
 
 func parseEmote(ctx context.Context, input emote.EmoteInput) (telegram.InputSticker, error) {
-    emote, err := input.ToEmote()
-    if err != nil {
-        return telegram.InputSticker{}, err
-    }
-    
-    select {
-    case <-ctx.Done():
-        return telegram.InputSticker{}, ctx.Err()
-    default:
-    }
-    
-    emoteData, err := emote.Download()
-    if err != nil {
-        return telegram.InputSticker{}, err
-    }
-    
-    select {
-    case <-ctx.Done():
-        return telegram.InputSticker{}, ctx.Err()
-    default:
-    }
-    
-    if err := resize.FitEmote(&emoteData); err != nil {
-        return telegram.InputSticker{}, err
-    }
+	emote, err := input.ToEmote()
+	if err != nil {
+		return telegram.InputSticker{}, err
+	}
+
+	select {
+	case <-ctx.Done():
+		return telegram.InputSticker{}, ctx.Err()
+	default:
+	}
+
+	emoteData, err := emote.Download()
+	if err != nil {
+		return telegram.InputSticker{}, err
+	}
+
+	select {
+	case <-ctx.Done():
+		return telegram.InputSticker{}, ctx.Err()
+	default:
+	}
+
+	if err := resize.FitEmote(&emoteData); err != nil {
+		return telegram.InputSticker{}, err
+	}
 
 	return telegram.InputSticker{
 		Sticker:   emoteData.File,
@@ -169,76 +207,44 @@ func parseEmote(ctx context.Context, input emote.EmoteInput) (telegram.InputStic
 	}, nil
 }
 
-func packFromRequest(
+func (h *CreatePackJobHandler) Handle(
 	ctx context.Context,
-	req *CreatePackRequest,
-	cfg *config.Config,
-	progress func(done, total int),
-) (*telegram.StickerPack, error) {
-	watermarkTitle := applyWatermark(req.Title, req.HasWatermark, cfg)
-	stickers, err := emotesToStickers(ctx, req.Emotes, 2, progress)
+	r *http.Request,
+	progress func(done, total int, message string),
+) (any, error) {
+	req := h.req
+	steps := 3 + len(req.Emotes)
+	currentStep := 0
+
+	progress(currentStep, steps, "Processing emotes")
+	stickers, err := h.emotesToStickers(ctx, req.Emotes, 2, func(done, total int) {
+		currentStep := steps - total + done
+		progress(currentStep, steps, fmt.Sprintf("Processing emotes (%d/%d)", done, total))
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to process emotes: %w", err)
 	}
-	return telegram.NewStickerPack(
+
+	progress(currentStep, steps, "Creating stickerpack")
+	currentStep++
+	watermarkTitle := applyWatermark(req.Title, req.HasWatermark, h.cfg)
+	pack, err := telegram.NewStickerPack(
 		req.UserID,
 		telegram.WithName(req.PackName),
 		telegram.WithStickers(stickers),
 		telegram.WithTitle(watermarkTitle),
 		telegram.WithPublic(req.IsPublic),
 	)
-}
-
-func createPackHandler(w http.ResponseWriter, r *http.Request) {
-	req, mr := parseCreatePackRequest(w, r)
-	if mr != nil {
-		http.Error(w, mr.Error(), mr.status)
-		return
-	}
-
-	// SSE headers
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "SSE unsupported", http.StatusInternalServerError)
-		return
-	}
-	ctx := r.Context()
-
-	progress := func(done, total int) {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		
-		event := struct {
-			Done  int `json:"done"`
-			Total int `json:"total"`
-		}{done, total}
-		data, _ := json.Marshal(event)
-		fmt.Fprintf(w, "data: %s\n\n", data)
-		flusher.Flush()
-	}
-
-	cfg := config.Load()
-	pack, err := packFromRequest(ctx, req, cfg, progress)
 	if err != nil {
-		fmt.Fprintf(w, "event: error\ndata: %q\n\n", err.Error())
-		flusher.Flush()
-		return
+		return nil, fmt.Errorf("failed to bundle stickerpack: %w", err)
 	}
 
 	url, err := pack.Create()
 	if err != nil {
-		fmt.Fprintf(w, "event: error\ndata: %q\n\n", err.Error())
-		flusher.Flush()
-		return
+		return nil, fmt.Errorf("telegram error: %w", err)
 	}
 
+	progress(currentStep, steps, "Saving to database")
 	_ = pack.UpdateThumbnailID()
 	storedPack := db.NewStoredPack(
 		db.WithUserID(pack.UserID()),
@@ -247,23 +253,19 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 		db.WithPublic(pack.IsPublic()),
 		db.WithThumbnail(pack.ThumbnailID()),
 	)
-	createdPack, err := cfg.DBConn().AddStickerpack(storedPack)
+
+	createdPack, err := h.cfg.DBConn().AddStickerpack(storedPack)
 	if err != nil {
-		fmt.Fprintf(w, "event: error\ndata: %q\n\n", err.Error())
-		flusher.Flush()
-		return
+		return nil, fmt.Errorf("failed to save pack to database: %w", err)
 	}
 
-	result := struct {
+	return struct {
 		PackURL string           `json:"pack_url"`
 		Pack    *db.PackResponse `json:"pack"`
 	}{
 		PackURL: url,
 		Pack:    createdPack,
-	}
-	data, _ := json.Marshal(result)
-	fmt.Fprintf(w, "event: done\ndata: %s\n\n", data)
-	flusher.Flush()
+	}, nil
 }
 
 func parseCreatePackRequest(
