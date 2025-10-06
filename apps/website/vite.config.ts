@@ -1,6 +1,7 @@
 import path from 'path'
 import process from 'process'
 import vue from '@vitejs/plugin-vue'
+import svgLoader from 'vite-svg-loader'
 import { defineConfig, loadEnv } from 'vite'
 
 export default defineConfig(({ mode }) => {
@@ -9,6 +10,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       vue(),
+      svgLoader()
     ],
 
     server: {
