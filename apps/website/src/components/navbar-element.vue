@@ -3,6 +3,7 @@
       :to="route.path"
       class="link"
       active-class="active"
+      draggable="false"
     >
       <span>
         {{ route.name }}
@@ -20,27 +21,27 @@ defineProps<{
 
 <style scoped>
 .link {
-  padding: 20px;
+  padding: 15px;
   text-decoration: none;
   color: var(--text);
-  font-size: 1.2em;
-  border-left: 3px solid var(--secondary);
-  border-right: 3px solid var(--secondary);
+  font-size: 1.1em;
   display: flex;
   justify-content: center;
   align-items: center;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  user-select: none;
 }
 
 .link:hover {
-  background: var(--accent);
-  border-color: var(--accent)
+  border-bottom-color: var(--border-hover);
 }
 
 .active {
-  border-color: var(--text)
+  border-bottom-color: var(--text);
 }
 
 .active:hover {
-  border-color: var(--text);
+  border-bottom-color: var(--text);
 }
 </style>

@@ -1,19 +1,9 @@
 <template>
-  <div
-    v-show="!authStore.isLoggedIn"
-    ref="telegramWidget"
-    class="tg-auth-wrapper"
-  />
-
-  <div v-show="authStore.isLoggedIn" class="user-info">
-    <div class="user-info">
-      <img src="@/assets/hi.gif" alt="">
-      {{ authStore.username }}
-    </div>
-    <button @click="authStore.logOut">
-      <div class="logout" />
-    </button>
-  </div>
+    <div
+      v-show="!authStore.isLoggedIn"
+      ref="telegramWidget"
+      class="tg-auth-wrapper"
+    />
 </template>
 
 <script setup lang="ts">
@@ -54,33 +44,5 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.user-info {
-  font-size: 1.2em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--accent);
-  height: 40px;
-  border-radius: 10px;
-}
-
-img {
-  margin-left: 15px;
-}
-
-button {
-  background: var(--primary);
-  border: none;
-  cursor: pointer;
-  border-radius: 0 10px 10px 0;
-}
-
-.logout {
-  mask: no-repeat center url("@/assets/icons/logout.svg");
-  background-color: var(--text);
-  height: 40px;
-  width: 60px;
 }
 </style>

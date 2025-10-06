@@ -1,6 +1,6 @@
 <template>
   <header>
-    <h1>Stickerpack editor</h1>
+    <h1>Stickerpack<br>editor</h1>
     <nav>
       <NavbarElement
         v-for="route in navbarRoutes"
@@ -8,25 +8,31 @@
         :route="route"
       />
     </nav>
-    <TelegramLogin />
+    <UserInfoDesktop />
   </header>
 </template>
 
 <script setup lang="ts">
-import TelegramLogin from '@/components/telegram-login.vue'
 import { navbarRoutes } from '@/router'
 import NavbarElement from '@/components/navbar-element.vue';
+import UserInfoDesktop from '@/components/user-info-desktop.vue';
 </script>
 
 <style scoped>
 h1 {
-  font-size: 1.5em;
+  font-size: 1.2em;
+  border-left: 3px solid var(--primary);
+  border-right: 3px solid var(--primary);
+  align-self: stretch;
+  display: flex;
   text-align: center;
+  align-items: center;
+  padding: 0 10px;
 }
 
 header {
   display: flex;
-  background: var(--secondary);
+  border-bottom: 1px solid var(--border);
   padding: 0 20px;
   gap: 20px;
   align-items: center;

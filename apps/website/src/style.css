@@ -11,6 +11,8 @@
     --secondary: #134b70;
     --accent: #44a0e1;
     --panel: rgba(255, 255, 255, 0.06);
+    --border: #313131;
+    --border-hover: #252525;
 }
 
 .light {
@@ -21,4 +23,6 @@
     --secondary: #8ec6ec;
     --accent: #1f7bbd;
     --panel: rgba(0, 0, 0, 0.06);
+    --border: #d0d5dd;
+    --border-hover: #f9f9f9;
 }

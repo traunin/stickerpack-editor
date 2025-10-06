@@ -4,7 +4,6 @@
     <div class="content">
       <RouterView />
     </div>
-    <ThemeSwitch class="theme-switcher" />
   </div>
 </template>
 
@@ -12,7 +11,6 @@
 import { useDark } from '@vueuse/core'
 import { RouterView } from 'vue-router'
 import NavbarHeader from '@/components/navbar-header.vue'
-import ThemeSwitch from './components/theme-switch.vue'
 
 useDark({
   selector: 'body',
@@ -42,11 +40,5 @@ useDark({
   justify-content: flex-start;
   align-items: flex-start;
   min-height: 0;
-}
-
-.theme-switcher {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
 }
 </style>

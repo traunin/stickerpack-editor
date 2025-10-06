@@ -2,35 +2,38 @@
   <RouterLink
     to="create"
     class="link"
+    draggable="false"
   >
-    <span class="logo">
-      +
-    </span>
+    <AddIcon class="logo"/>
     <span class="text">
-      Create pack
+      Create
     </span>
   </RouterLink>
 </template>
 
 <script setup lang="ts">
-
+import AddIcon from '@/assets/icons/add.svg'
 </script>
 
 <style scoped>
 .link {
   display: flex;
-  flex-direction: column;
-  border: 3px solid var(--primary);
   justify-content: center;
   align-items: center;
   color: var(--text);
   text-decoration: none !important;
-  padding: 20px;
   font-size: 1.2em;
-  background: var(--background)
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 10px;
+  gap: 10px;
+  align-self: center;
+  user-select: none;
 }
 
 .logo {
-  font-size: 6em;
+  width: 20px;
+  height: 20px;
+  color: var(--text);
 }
 </style>
