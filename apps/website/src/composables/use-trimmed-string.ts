@@ -1,15 +1,15 @@
-// useTrimmedString.ts
-import { computed, Ref, unref } from "vue"
+import { computed, unref } from 'vue'
+import type { Ref } from 'vue'
 
 export function useTrimmedString(
   source: Ref<string> | string,
-  trimmedLength: number
+  trimmedLength: number,
 ) {
   const trimmed = computed(() => {
     const value = unref(source)
-    return value.length <= (trimmedLength - 3)
-      ? value
-      : `${value.substring(0, trimmedLength - 3)}...`
+    return value.length <= (trimmedLength - 3) ?
+      value :
+      `${value.substring(0, trimmedLength - 3)}...`
   })
 
   return { trimmed }

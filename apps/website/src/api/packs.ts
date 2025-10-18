@@ -26,7 +26,6 @@ async function fetchPacksEndpoint(endpoint: string, page = 0, pageSize = 10) {
   return json
 }
 
-
 export async function fetchUserPacks(page = 0, pageSize = 10) {
   return fetchPacksEndpoint('user/packs', page, pageSize)
 }

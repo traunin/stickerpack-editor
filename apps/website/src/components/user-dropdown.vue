@@ -4,7 +4,7 @@
       <img src="@/assets/hi.gif" alt="">
       {{ authStore.username }}
     </div>
-    <transition name="fade">
+    <Transition name="fade">
       <ul v-if="open">
         <li>
           <DropdownThemeButton />
@@ -13,15 +13,15 @@
           <DropdownLogoutButton />
         </li>
       </ul>
-    </transition>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
-import DropdownThemeButton from './dropdown-theme-button.vue'
 import DropdownLogoutButton from './dropdown-logout-button.vue'
+import DropdownThemeButton from './dropdown-theme-button.vue'
 
 const open = ref(false)
 const authStore = useTgAuthStore()

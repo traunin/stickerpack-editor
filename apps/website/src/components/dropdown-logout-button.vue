@@ -1,7 +1,7 @@
 <template>
   <button
-    @click="authStore.logOut"
     class="logout-button"
+    @click="authStore.logOut"
   >
     <div class="logout" />
     <span>Sign out</span>

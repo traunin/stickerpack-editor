@@ -1,25 +1,26 @@
-import { computed, MaybeRef, ref, unref, watch } from 'vue'
 import { useDebounce } from '@vueuse/core'
+import { computed, ref, unref, watch } from 'vue'
 import { API_URL } from '@/api/config'
+import type { MaybeRef } from 'vue'
 
 function validateName(name: string): string | null {
-    if (name.length == 0) {
-      return 'Name is empty'
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
-      return 'Only letters, numbers, and underscores allowed'
-    }
-    if (/__/.test(name)) {
-      return 'No consecutive underscores'
-    }
-    if (/_$/.test(name)) {
-      return `Can't end with an underscore`
-    }
-    if (`${name}_by_${import.meta.env.VITE_BOT_NAME}`.length > 64) {
-      return 'Name too long'
-    }
+  if (name.length === 0) {
+    return 'Name is empty'
+  }
+  if (!/^\w+$/.test(name)) {
+    return 'Only letters, numbers, and underscores allowed'
+  }
+  if (/__/.test(name)) {
+    return 'No consecutive underscores'
+  }
+  if (name.endsWith('_')) {
+    return `Can't end with an underscore`
+  }
+  if (`${name}_by_${import.meta.env.VITE_BOT_NAME}`.length > 64) {
+    return 'Name too long'
+  }
 
-    return null
+  return null
 }
 
 export function usePackNameCheck(name: MaybeRef<string>) {
@@ -28,7 +29,7 @@ export function usePackNameCheck(name: MaybeRef<string>) {
   const loading = ref(false)
 
   const unwrapped = computed(() => unref(name))
-  
+
   const validated = computed(() => {
     available.value = null
     const validationError = validateName(unwrapped.value)
@@ -38,24 +39,25 @@ export function usePackNameCheck(name: MaybeRef<string>) {
       loading.value = false
       return null
     }
-    error.value = "Checking if name is taken..."
+    error.value = 'Checking if name is taken...'
     loading.value = true
 
     return unwrapped.value
   })
-  
+
   const debounced = useDebounce(validated, 300)
 
   watch(debounced, async (newName) => {
-    if (!newName) return
-    
+    if (!newName)
+      return
+
     try {
       const res = await fetch(`${API_URL}/user/packs/${encodeURIComponent(newName)}`, {
         method: 'HEAD',
       })
-      available.value = res.status != 200
+      available.value = res.status !== 200
       if (!available.value) {
-        error.value = "Name taken"
+        error.value = 'Name taken'
       } else {
         error.value = null
       }

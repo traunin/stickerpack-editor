@@ -1,18 +1,18 @@
 <template>
-    <RouterLink
-      :to="route.path"
-      class="link"
-      active-class="active"
-      draggable="false"
-    >
-      <span>
-        {{ route.name }}
-      </span>
-    </RouterLink>
+  <RouterLink
+    :to="route.path"
+    class="link"
+    active-class="active"
+    draggable="false"
+  >
+    <span>
+      {{ route.name }}
+    </span>
+  </RouterLink>
 </template>
 
 <script setup lang="ts">
-import { RouteRecordRaw } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router'
 
 defineProps<{
   route: RouteRecordRaw

@@ -1,9 +1,9 @@
 <template>
-    <div
-      v-show="!authStore.isLoggedIn"
-      ref="telegramWidget"
-      class="tg-auth-wrapper"
-    />
+  <div
+    v-show="!authStore.isLoggedIn"
+    ref="telegramWidget"
+    class="tg-auth-wrapper"
+  />
 </template>
 
 <script setup lang="ts">

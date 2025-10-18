@@ -1,5 +1,6 @@
-import { type Emote } from '@/types/sticker'
-import { ref, type Ref, watch } from 'vue'
+import { ref, watch } from 'vue'
+import type { Emote } from '@/types/sticker'
+import type { Ref } from 'vue'
 
 interface EmoteSearchResponse {
   data: {

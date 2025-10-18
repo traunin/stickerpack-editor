@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { createSession, deleteSession, type User } from '@/api/session'
+import { createSession, deleteSession } from '@/api/session'
+import type { User } from '@/api/session'
 
 export const useTgAuthStore = defineStore('use-tg-auth', () => {
   const isLoggedIn = ref(false)
@@ -38,6 +39,6 @@ export const useTgAuthStore = defineStore('use-tg-auth', () => {
   persist: {
     key: 'use-tg-auth',
     storage: localStorage,
-    pick: ['username', 'isLoggedIn']
+    pick: ['username', 'isLoggedIn'],
   },
 })

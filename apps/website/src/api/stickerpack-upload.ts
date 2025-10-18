@@ -1,6 +1,6 @@
-import { API_URL } from './config'
 import type { PackResponse } from '@/types/pack'
 import type { Sticker } from '@/types/sticker'
+import { API_URL } from './config'
 
 export interface StickerpackRequest {
   pack_name: string
@@ -29,7 +29,7 @@ interface EmoteInput {
 
 export async function uploadPack(
   request: StickerpackRequest,
-  onProgress?: (progress: ProgressEvent) => void
+  onProgress?: (progress: ProgressEvent) => void,
 ): Promise<CreatePackResponse> {
   const parsedRequest = {
     ...request,
@@ -84,7 +84,7 @@ export async function uploadPack(
     throw new Error('job stream has no body')
   }
 
-  return new Promise<CreatePackResponse>(async (resolve, reject) => {
+  return new Promise<CreatePackResponse>((resolve, reject) => {
     const reader = sseResp.body!.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
@@ -92,8 +92,10 @@ export async function uploadPack(
     function findBoundary(buf: string) {
       const rn = buf.indexOf('\r\n\r\n')
       const n = buf.indexOf('\n\n')
-      if (rn === -1) return n === -1 ? -1 : { pos: n, len: 2 }
-      if (n === -1) return { pos: rn, len: 4 }
+      if (rn === -1)
+        return n === -1 ? -1 : { pos: n, len: 2 }
+      if (n === -1)
+        return { pos: rn, len: 4 }
       return rn < n ? { pos: rn, len: 4 } : { pos: n, len: 2 }
     }
 
@@ -101,7 +103,8 @@ export async function uploadPack(
       try {
         if (eventType === 'progress') {
           const p: ProgressEvent = JSON.parse(dataStr)
-          if (onProgress) onProgress(p)
+          if (onProgress)
+            onProgress(p)
         } else if (eventType === 'status') {
           // const s = JSON.parse(dataStr)
         } else if (eventType === 'result') {
@@ -109,9 +112,7 @@ export async function uploadPack(
           if (jobResult.status === 'completed') {
             resolve(jobResult.data as CreatePackResponse)
           } else {
-            const errMsg =
-              jobResult.error ??
-              `job failed with status ${String(jobResult.status)}`
+            const errMsg = jobResult.error ?? `job failed with status ${String(jobResult.status)}`
             reject(new Error(errMsg))
           }
         } else if (eventType === 'error') {
@@ -121,10 +122,10 @@ export async function uploadPack(
           try {
             const maybe = JSON.parse(dataStr)
             if (maybe && maybe.done !== undefined && maybe.total !== undefined) {
-              if (onProgress) onProgress(maybe as ProgressEvent)
+              if (onProgress)
+                onProgress(maybe as ProgressEvent)
             }
-          } catch {
-          }
+          } catch {}
         }
       } catch (err) {
         reject(new Error(`Failed to parse event ${eventType}: ${String(err)}`))
@@ -134,8 +135,10 @@ export async function uploadPack(
     function parseBuffer() {
       while (true) {
         const find = findBoundary(buffer)
-        if (find === -1) break
-        const { pos, len } = find as { pos: number; len: number }
+        if (find === -1) {
+          break
+        }
+        const { pos, len } = find as { pos: number, len: number }
         const rawEvent = buffer.slice(0, pos)
         buffer = buffer.slice(pos + len)
 
@@ -143,34 +146,36 @@ export async function uploadPack(
         let eventType = 'message'
         const dataLines: string[] = []
         for (const line of lines) {
-          if (line.startsWith('event:')) {
+          if (line.startsWith('event:'))
             eventType = line.slice('event:'.length).trim()
-          } else if (line.startsWith('data:')) {
+          else if (line.startsWith('data:'))
             dataLines.push(line.slice('data:'.length).trim())
-          }
         }
         const dataStr = dataLines.join('\n')
-        if (dataStr.length > 0) handleEvent(eventType, dataStr)
+        if (dataStr.length > 0)
+          handleEvent(eventType, dataStr)
       }
     }
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) {
-          reject(new Error('SSE stream ended without result'))
-          return
-        }
-        buffer += decoder.decode(value, { stream: true })
-        parseBuffer()
-      }
-    } catch (err) {
-      reject(new Error(`SSE reader error: ${String(err)}`))
-    } finally {
+    ;(async () => {
       try {
-        reader.cancel().catch(() => {})
-      } catch {}
-    }
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) {
+            reject(new Error('SSE stream ended without result'))
+            return
+          }
+          buffer += decoder.decode(value, { stream: true })
+          parseBuffer()
+        }
+      } catch (err) {
+        reject(new Error(`SSE reader error: ${String(err)}`))
+      } finally {
+        try {
+          reader.cancel().catch(() => {})
+        } catch {}
+      }
+    })()
   })
 }
 

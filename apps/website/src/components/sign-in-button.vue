@@ -1,5 +1,5 @@
 <template>
-  <button @click="showModal=true">
+  <button @click="showModal = true">
     Sign in
   </button>
   <ModalSignIn v-model="showModal" />
@@ -7,10 +7,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import ModalSignIn from '@/components/modal-sign-in.vue';
-import ModalLoading from './modal-loading.vue';
-import { useTgAuthStore } from '@/stores/use-tg-auth';
+import { ref } from 'vue'
+import ModalSignIn from '@/components/modal-sign-in.vue'
+import { useTgAuthStore } from '@/stores/use-tg-auth'
+import ModalLoading from './modal-loading.vue'
 
 const showModal = ref(false)
 const authStore = useTgAuthStore()

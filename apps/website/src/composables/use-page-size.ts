@@ -1,49 +1,50 @@
-import { ref, onMounted, onUnmounted, Ref, nextTick, watch } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { Ref } from 'vue'
 
 export function usePageSize(containerRef: Ref<HTMLElement | null>) {
-  const pageSize = ref(1);
-  
+  const pageSize = ref(1)
+
   const updatePageSize = async () => {
-    await nextTick();
-    
-    const container = containerRef.value as HTMLElement | null;
+    await nextTick()
+
+    const container = containerRef.value as HTMLElement | null
     if (!container) {
-      return;
+      return
     }
-    
-    const firstChild = container.querySelector<HTMLElement>(":first-child");
+
+    const firstChild = container.querySelector<HTMLElement>(':first-child')
     if (!firstChild) {
-      return;
+      return
     }
-    
-    const containerWidth = container.clientWidth;
-    const packWidth = firstChild.offsetWidth;
-    
-    const newPageSize = Math.max(1, Math.floor(containerWidth / packWidth));
+
+    const containerWidth = container.clientWidth
+    const packWidth = firstChild.offsetWidth
+
+    const newPageSize = Math.max(1, Math.floor(containerWidth / packWidth))
     if (newPageSize !== pageSize.value) {
-      pageSize.value = newPageSize;
+      pageSize.value = newPageSize
     }
-  };
+  }
 
   watch(containerRef, (newContainer) => {
     if (newContainer) {
-      updatePageSize();
+      updatePageSize()
     }
-  }, { immediate: true });
+  }, { immediate: true })
 
   onMounted(() => {
-    setTimeout(updatePageSize, 0);
-    setTimeout(updatePageSize, 100);
-    
-    window.addEventListener("resize", updatePageSize);
-  });
+    setTimeout(updatePageSize, 0)
+    setTimeout(updatePageSize, 100)
+
+    window.addEventListener('resize', updatePageSize)
+  })
 
   onUnmounted(() => {
-    window.removeEventListener("resize", updatePageSize);
-  });
+    window.removeEventListener('resize', updatePageSize)
+  })
 
   return {
     pageSize,
     updatePageSize, // trigger when the api returns packs
-  };
+  }
 }

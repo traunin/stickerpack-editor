@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div class="backdrop" v-show="model">
+    <div v-show="model" class="backdrop">
       <div class="modal">
         Sign in
         <button
@@ -16,8 +16,9 @@
 </template>
 
 <script setup lang="ts">
-import TelegramLogin from './telegram-login.vue';
-const model = defineModel<boolean>({default: false})
+import TelegramLogin from './telegram-login.vue'
+
+const model = defineModel<boolean>({ default: false })
 </script>
 
 <style scoped>

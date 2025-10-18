@@ -1,5 +1,6 @@
-import { type Emote } from '@/types/sticker'
-import { computed, ref, type Ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import type { Emote } from '@/types/sticker'
+import type { Ref } from 'vue'
 
 interface TenorSearchResponse {
   results: {
@@ -22,7 +23,8 @@ async function fetchTenor(query: string, pos = '', limit = 10) {
   url.searchParams.set('q', query)
   url.searchParams.set('key', TENOR_API_KEY)
   url.searchParams.set('limit', String(limit))
-  if (pos) url.searchParams.set('pos', pos)
+  if (pos)
+    url.searchParams.set('pos', pos)
 
   const res = await fetch(url.toString())
   if (!res.ok) {
@@ -34,7 +36,7 @@ async function fetchTenor(query: string, pos = '', limit = 10) {
 
   return {
     items: items.map((e): Emote => ({
-      id: e.media_formats.gif.url.replace("https://media.tenor.com/", ""),
+      id: e.media_formats.gif.url.replace('https://media.tenor.com/', ''),
       name: e.title || e.id,
       preview: e.media_formats.tinygif?.url ?? e.media_formats.nanogif?.url ?? '',
       full: e.media_formats.gif?.url ?? e.media_formats.mediumgif?.url ?? '',

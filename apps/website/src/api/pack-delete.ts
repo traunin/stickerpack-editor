@@ -1,4 +1,3 @@
-
 import { API_URL } from './config'
 
 interface DeletePackResponse {
@@ -31,8 +30,8 @@ export async function deletePack(name: string) {
 
     const data: DeletePackResponse = await res.json()
     return data
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('deletePack error:', err)
-    throw new Error(err?.message || 'Unknown error while deleting pack')
+    throw new Error(String(err))
   }
 }
