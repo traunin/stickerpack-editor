@@ -1,10 +1,8 @@
 <template>
-  <div class="container">
-    <NavbarHeader />
-    <div class="content">
-      <RouterView />
-    </div>
-  </div>
+  <NavbarHeader />
+  <main>
+    <RouterView />
+  </main>
 </template>
 
 <script setup lang="ts">
@@ -21,19 +19,7 @@ useDark({
 </script>
 
 <style scoped>
-.container {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  background: var(--background);
-  color: var(--text);
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.content {
+main {
   display: flex;
   flex-grow: 1;
   flex-direction: column;
