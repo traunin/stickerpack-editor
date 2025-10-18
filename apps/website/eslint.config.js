@@ -1,7 +1,9 @@
 import antfu from '@antfu/eslint-config'
 
 export default antfu({
+  typescript: true,
   rules: {
+    'eol-last': ['error', 'always'],
     'style/operator-linebreak': ['warn', 'after'],
     'unicorn/prefer-node-protocol': 'off',
     'no-unused-vars': 'warn',
