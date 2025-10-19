@@ -5,9 +5,7 @@
     active-class="active"
     draggable="false"
   >
-    <span>
-      {{ route.name }}
-    </span>
+    {{ route.name }}
   </RouterLink>
 </template>
 
