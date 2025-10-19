@@ -1,0 +1,85 @@
+name: stickerpack-dev
+services:
+  postgres:
+    image: postgres:17
+    container_name: stickerpack-db-dev
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    networks: [internal]
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: ./apps/api
+    container_name: stickerpack-api-dev
+    environment:
+      DOMAIN: ${DOMAIN}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      BOT_NAME: ${BOT_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      DOWNLOAD_RETRIES: ${DOWNLOAD_RETRIES}
+      PORT: ${PORT}
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks: [internal]
+
+  web:
+    build:
+      context: ./apps/website
+      dockerfile: Dockerfile.dev
+      args:
+        VITE_DOMAIN: ${DOMAIN}
+        VITE_API_URL: https://${DOMAIN}/api
+        VITE_BOT_NAME: ${BOT_NAME}
+    container_name: stickerpack-web-dev
+    volumes:
+      - ./apps/website:/app
+      - /app/node_modules
+    environment:
+      VITE_DOMAIN: ${DOMAIN}
+      VITE_API_URL: https://${DOMAIN}/api
+      VITE_BOT_NAME: ${BOT_NAME}
+    restart: unless-stopped
+    networks: [internal]
+
+  caddy:
+    image: caddy:2
+    container_name: stickerpack-edge-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy-data-dev:/data
+      - caddy-config-dev:/config
+    environment:
+      - DOMAIN=${DOMAIN}
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: stickerpack_postgres-data
+    external: true
+  caddy-data-dev:
+  caddy-config-dev:

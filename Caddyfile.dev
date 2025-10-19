@@ -1,0 +1,24 @@
+{$DOMAIN} {
+    tls internal
+    encode gzip zstd
+    
+    @forbidden {
+        path /.git*
+        path /.env*
+        path /docker-compose.yml
+        path /Caddyfile*
+    }
+    respond @forbidden 403
+    
+    @api path /api*
+    handle @api {
+        reverse_proxy api:8080
+    }
+    
+    # Proxy to Vite dev server for live reload
+    handle {
+        reverse_proxy web:80
+    }
+    
+    log
+}

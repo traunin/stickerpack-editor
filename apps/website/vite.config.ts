@@ -16,6 +16,18 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 80,
       host: env.VITE_DOMAIN,
+      allowedHosts: [
+        env.VITE_DOMAIN,
+      ],
+      watch: {
+        usePolling: true,
+        interval: 100,
+      },
+      hmr: {
+        host: env.VITE_DOMAIN,
+        protocol: 'wss',
+        clientPort: 443,
+      },
     },
 
     resolve: {
