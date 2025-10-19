@@ -35,7 +35,7 @@ import LoadingAnimation from './loading-animation.vue'
 
 const props = defineProps<{ stickerpack: PackResponse }>()
 
-const { trimmed } = useTrimmedString(props.stickerpack.title, 18)
+const { trimmed } = useTrimmedString(props.stickerpack.title, 21)
 const tgLink = `https://t.me/addstickers/${props.stickerpack.name}`
 
 const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack.thumbnail_id)
@@ -51,7 +51,9 @@ const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack
   width: 202px;
   height: 202px;
   position: relative;
-  background: var(--background);
+  background: var(--panel);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .error {
@@ -76,7 +78,7 @@ const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack
 .title {
   background: var(--secondary);
   padding: 10px;
-  font-size: 1.1em;
+  font-size: 1em;
   text-align: center;
   width: 100%;
 }
