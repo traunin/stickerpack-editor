@@ -1,20 +1,58 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
+
 	"github.com/patrickmn/go-cache"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
 
-const contentTypeBufferSize = 512
-var httpClient = &http.Client{Timeout: 15 * time.Second}
-var urlCache = cache.New(55 * time.Minute, 20 * time.Minute)
+const (
+	contentTypeBufferSize = 512
+	cacheControl          = "public, max-age=36000"
+)
+
+var (
+	httpClient     = &http.Client{Timeout: 15 * time.Second}
+	fileInfoCache  = cache.New(55*time.Minute, 20*time.Minute)
+	detectionLocks sync.Map
+)
+
+type CachedFileInfo struct {
+	URL         string
+	ContentType string
+}
+
+type StreamContext struct {
+    Writer      http.ResponseWriter
+    Body        io.Reader
+    ThumbnailID string
+    FileURL     string
+}
+
+type FileStreamRequest struct {
+	Ctx         context.Context
+	Writer      http.ResponseWriter
+	FileInfo    *CachedFileInfo
+	ThumbnailID string
+}
+
+type DetectedStreamContext struct {
+	Writer      http.ResponseWriter
+	Body        io.Reader
+	FirstChunk  []byte
+	ContentType string
+}
 
 type GetFileResponse struct {
 	Ok     bool `json:"ok"`
@@ -28,36 +66,54 @@ type GetFileResponse struct {
 
 func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Load()
-	
+
 	thumbnailID, err := extractThumbnailID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fileURL, err := getCachedOrFetchURL(cfg, thumbnailID)
+	fileInfo, err := getCachedOrFetchFileInfo(cfg, thumbnailID)
 	if err != nil {
+		log.Printf("Error fetching file info for %s: %v\n", thumbnailID, err)
 		http.Error(w, "failed getting a download link", http.StatusBadGateway)
 		return
 	}
 
-	if err := streamFile(w, fileURL); err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
+	req := FileStreamRequest{
+		Ctx:         r.Context(),
+		Writer:      w,
+		FileInfo:    fileInfo,
+		ThumbnailID: thumbnailID,
+	}
+	if err := streamFileAndMaybeDetect(req); err != nil {
+		if !isClientDisconnect(err) {
+			log.Printf("Error streaming file %s: %v\n", thumbnailID, err)
+		}
 		return
 	}
 }
 
-func getCachedOrFetchURL(cfg *config.Config, thumbnailID string) (string, error) {
-	if url, found := urlCache.Get(thumbnailID); found {
-		return url.(string), nil
+func getCachedOrFetchFileInfo(
+	cfg *config.Config,
+	thumbnailID string,
+) (*CachedFileInfo, error) {
+	if info, found := fileInfoCache.Get(thumbnailID); found {
+		return info.(*CachedFileInfo), nil
 	}
 
-    fileURL, err := downloadLink(cfg, thumbnailID)
-    if err != nil {
-        return "", err
-    }
-    urlCache.Set(thumbnailID, fileURL, cache.DefaultExpiration)
-    return fileURL, nil
+	fileURL, err := downloadLink(cfg, thumbnailID)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &CachedFileInfo{
+		URL:         fileURL,
+		ContentType: "",
+	}
+	fileInfoCache.Set(thumbnailID, info, cache.DefaultExpiration)
+
+	return info, nil
 }
 
 func extractThumbnailID(r *http.Request) (string, error) {
@@ -69,49 +125,159 @@ func extractThumbnailID(r *http.Request) (string, error) {
 	return thumbnailID, nil
 }
 
-func streamFile(w http.ResponseWriter, fileURL string) error {
-	resp, err := downloadFile(fileURL)
+func streamFileAndMaybeDetect(req FileStreamRequest) error {
+	resp, err := downloadFileWithContext(req.Ctx, req.FileInfo.URL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// read some bits to detect file type
-	buffer := make([]byte, contentTypeBufferSize)
-	n, err := resp.Body.Read(buffer)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("failed to read response")
+	// Content-Type already cached
+	if contentType := req.FileInfo.ContentType; contentType != "" {
+		return streamWithCachedType(req.Writer, resp.Body, contentType)
 	}
 
-	contentType := detectContentType(buffer, n)
+	// detect content type
+	streamCtx := StreamContext{
+		Writer:      req.Writer,
+		Body:        resp.Body,
+		ThumbnailID: req.ThumbnailID,
+		FileURL:     req.FileInfo.URL,
+	}
+	return detectAndStream(streamCtx)
+}
+
+func streamWithCachedType(
+	w http.ResponseWriter,
+	body io.Reader,
+	contentType string,
+) error {
 	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", cacheControl)
 
-	// write buffer
-	if _, err := w.Write(buffer[:n]); err != nil {
-		return fmt.Errorf("failed to write buffer")
-	}
-
-	// Copy the rest
-	if _, err := io.Copy(w, resp.Body); err != nil {
-		return fmt.Errorf("streaming failed")
+	if _, err := io.Copy(w, body); err != nil {
+		if isClientDisconnect(err) {
+			return nil
+		}
+		return fmt.Errorf("streaming failed: %w", err)
 	}
 
 	return nil
 }
 
-func detectContentType(buffer []byte, n int) string {
-	return http.DetectContentType(buffer[:n])
+func detectAndStream(ctx StreamContext) error {
+    mu := acquireDetectionLock(ctx.ThumbnailID)
+    defer releaseDetectionLock(ctx.ThumbnailID)
+    mu.Lock()
+    defer mu.Unlock()
+
+    if contentType := getCachedContentType(ctx.ThumbnailID); contentType != "" {
+        return streamWithCachedType(ctx.Writer, ctx.Body, contentType)
+    }
+
+    contentType, buffer, n, err := detectContentTypeFromStream(ctx.Body)
+    if err != nil {
+        return err
+    }
+
+    updateCachedContentType(ctx.ThumbnailID, ctx.FileURL, contentType)
+
+	streamCtx := DetectedStreamContext{
+		Writer:      ctx.Writer,
+		Body:        ctx.Body,
+		FirstChunk:  buffer[:n],
+		ContentType: contentType,
+	}
+	return streamWithDetectedType(streamCtx)
 }
 
-func downloadFile(fileURL string) (*http.Response, error) {
-	resp, err := httpClient.Get(fileURL)
+func acquireDetectionLock(thumbnailID string) *sync.Mutex {
+	lockKey := "detect:" + thumbnailID
+	actualLock, _ := detectionLocks.LoadOrStore(lockKey, &sync.Mutex{})
+	return actualLock.(*sync.Mutex)
+}
+
+func releaseDetectionLock(thumbnailID string) {
+	detectionLocks.Delete("detect:" + thumbnailID)
+}
+
+func getCachedContentType(thumbnailID string) string {
+	if cached, found := fileInfoCache.Get(thumbnailID); found {
+		info := cached.(*CachedFileInfo)
+		return info.ContentType
+	}
+	return ""
+}
+
+func detectContentTypeFromStream(body io.Reader) (string, []byte, int, error) {
+	buffer := make([]byte, contentTypeBufferSize)
+	n, err := io.ReadFull(body, buffer)
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+		errMsg := fmt.Errorf("failed to read content type response: %w", err)
+		return "", nil, 0, errMsg
+	}
+
+	contentType := http.DetectContentType(buffer[:n])
+	return contentType, buffer, n, nil
+}
+
+func updateCachedContentType(thumbnailID, fileURL, contentType string) {
+	updatedInfo := &CachedFileInfo{
+		URL:         fileURL,
+		ContentType: contentType,
+	}
+	fileInfoCache.Set(thumbnailID, updatedInfo, cache.DefaultExpiration)
+}
+
+func streamWithDetectedType(ctx DetectedStreamContext) error {
+	ctx.Writer.Header().Set("Content-Type", ctx.ContentType)
+	ctx.Writer.Header().Set("Cache-Control", cacheControl)
+
+	if _, err := ctx.Writer.Write(ctx.FirstChunk); err != nil {
+		if isClientDisconnect(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to write initial buffer: %w", err)
+	}
+
+	if _, err := io.Copy(ctx.Writer, ctx.Body); err != nil {
+		if isClientDisconnect(err) {
+			return nil
+		}
+		return fmt.Errorf("streaming failed: %w", err)
+	}
+
+	return nil
+}
+
+func isClientDisconnect(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	return strings.Contains(errStr, "broken pipe") ||
+		strings.Contains(errStr, "connection reset by peer") ||
+		strings.Contains(errStr, "connection timed out") ||
+		strings.Contains(errStr, "client disconnected")
+}
+
+func downloadFileWithContext(
+	ctx context.Context,
+	fileURL string,
+) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send download request")
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send download request: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, fmt.Errorf("download response invalid")
+		return nil, fmt.Errorf("download response invalid: status %d", resp.StatusCode)
 	}
 
 	return resp, nil
