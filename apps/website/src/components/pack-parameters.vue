@@ -56,24 +56,53 @@ function forwardTitleError(e: string | null) {
 <style scoped>
 .parameters {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   margin-bottom: 0;
   background: var(--panel);
   padding: 10px;
+  border-radius: 10px;
 }
 
 .watermark, .public {
-  font-size: 1.3em;
+  font-size: 1.2em;
   display: flex;
+  align-items: center;
 }
 
-input {
-  align-self: stretch;
-  flex: 0;
-  aspect-ratio: 1;
-  margin: 0;
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: var(--input);
+  border: none;
   cursor: pointer;
-  height: 100%;
+  display: inline-block;
+  position: relative;
+  transition: background-color 0.1s;
+  margin: 0;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #fff;
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 14px;
+  width: 10px;
+  height: 18px;
+  border: solid #000;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:active {
+  transform: scale(0.95);
 }
 
 .name, .title {
@@ -84,6 +113,7 @@ label {
   width: 145px;
   padding-left: 10px;
   cursor: pointer;
+  user-select: none;
 }
 
 .sticker-count {

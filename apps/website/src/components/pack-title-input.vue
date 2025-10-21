@@ -54,19 +54,26 @@ watch(error, (val) => {
   position: absolute;
   bottom: -30px;
   right: 0;
-  padding: 5px;
-  border: 2px solid red;
-  background: var(--background)
+  padding: 5px 10px;
+  border: 1px solid red;
+  background: var(--background);
+  border-radius: 5px;
 }
 
 input {
   flex: 1;
   background: var(--input);
   color: var(--text);
-  border: 3px solid var(--primary);
-  font-size: 1.3em;
-  padding: 5px;
+  border: 1px solid transparent;
+  font-size: 1.2em;
+  padding: 5px 10px;
+  border-radius: 10px;
   padding-right: 40px;
   width: 100%;
+  outline: none;
+}
+
+input:focus-visible {
+  border: 1px solid var(--text);
 }
 </style>
