@@ -164,12 +164,13 @@ async function createPack() {
 button {
   background: var(--primary);
   color: var(--text);
-  font-size: 1.5em;
+  font-size: 1.3em;
   padding: 10px;
   color: var(--text);
   border: none;
   margin-top: 0;
-  cursor: pointer
+  cursor: pointer;
+  border-radius: 10px;
 }
 
 .creation-form {
@@ -178,8 +179,8 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin: 20px;
-  gap: 20px;
+  margin: 15px;
+  gap: 15px;
 }
 
 .stickers {
@@ -188,7 +189,7 @@ button {
   display: flex;
   align-items: stretch;
   min-height: 0;
-  gap: 20px;
+  gap: 15px;
 }
 
 .sticker-search {
@@ -212,6 +213,7 @@ button {
   background: var(--panel);
   scrollbar-color: var(--accent) var(--input);
   scrollbar-width: thin;
+  border-radius: 10px;
 }
 
 .error {
@@ -239,14 +241,15 @@ button:disabled {
   content: "Preview";
   position: absolute;
   top: 5px;
-  height: 22.9px;
-  line-height: 22.9px;
-  padding: 0 4px;
+  height: 26px;
+  line-height: 26px;
+  padding: 0 6px;
   background: var(--primary);
   color: var(--text);
   z-index: 5;
   left: 50%;
   transform: translate(-50%);
+  border-radius: 5px;
 }
 
 .drag-area {
@@ -254,7 +257,7 @@ button:disabled {
   grid-template-columns: repeat(auto-fill, 202px);
   flex: 1;
   gap: 10px;
-  margin: 20px;
+  margin: 15px;
   justify-content: center;
 }
 
@@ -262,18 +265,20 @@ button:disabled {
   position: relative;
   padding: 5px;
   background: var(--panel);
+  border-radius: 5px;
 }
 
 .drag-handle {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  text-align: center;
   color: var(--text);
   background: var(--primary);
   cursor: grab;
   z-index: 10;
+  font-size: 1.2em;
+  line-height: 28px;
 }
 </style>

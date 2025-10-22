@@ -84,6 +84,9 @@ function handlePaste(event: ClipboardEvent) {
   display: flex;
   flex-direction: column;
   position: relative;
+  border-radius: 5px;
+  overflow: hidden;
+  padding-top: 30px;
 }
 
 .preview {
@@ -103,14 +106,21 @@ input {
   width: 192px;
   padding: 5px;
   background: var(--input);
-  border: 2px solid var(--primary);
+  border: 1px solid transparent;
   color: var(--text);
   font-size: 1.2em;
+  border-radius: 5px;
+  margin-top: 5px;
+  outline: none;
+}
+
+input:focus-visible {
+  border: 1px solid var(--text);
 }
 
 .remove {
-  width: 20px;
-  line-height: 20px;
+  width: 26px;
+  border-radius: 5px;
   background: #f00;
   color: var(--text);
   position: absolute;
@@ -118,5 +128,7 @@ input {
   aspect-ratio: 1;
   border: none;
   cursor: pointer;
+  top: 0;
+  font-size: 1em;
 }
 </style>
