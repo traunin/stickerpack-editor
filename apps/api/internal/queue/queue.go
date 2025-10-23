@@ -125,6 +125,7 @@ func (q *Queue) processJob(job *Job, workerID int) {
 
 	var jobResult JobResult
 	if err != nil {
+		log.Printf("Worker %d error: %v", workerID, err)
 		job.Status = StatusFailed
 		jobResult = JobResult{
 			Status: StatusFailed,
