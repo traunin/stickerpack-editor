@@ -3,13 +3,21 @@ package emote
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"time"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/retrier"
 )
 
 const idLength = 26
+
+var (
+	retries7TV    = config.Load().DownloadRetries()
+	httpClient7TV = &http.Client{
+		Timeout: 10 * time.Second,
+	}
+)
 
 type sevenTVEmote struct {
 	id        string
@@ -21,20 +29,7 @@ type sevenTVResponse struct {
 	Animated bool `json:"animated"`
 }
 
-func newSevenTVEmote(id string, keywords, emojiList []string) (sevenTVEmote, error) {
-	// no checks for keywords and emojis since it's supposed to be checked in toEmote
-	if !isValidId(id) {
-		return sevenTVEmote{}, fmt.Errorf("id %s invalid", id)
-	}
-
-	return sevenTVEmote{
-		id,
-		keywords,
-		emojiList,
-	}, nil
-}
-
-func isValidId(id string) bool {
+func isValid7TVId(id string) bool {
 	return len(id) == idLength // best I can come up with right now
 }
 
@@ -44,16 +39,20 @@ var extensions = map[bool]string{
 	false: ".png",
 }
 
-func (e sevenTVEmote) Download() (EmoteData, error) {
+func (e *sevenTVEmote) Download() (EmoteData, error) {
 	isAnimated, err := e.isAnimated()
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to get data for %s: %w", e.id, err)
 	}
 
 	extension := extensions[isAnimated]
-	emoteURL := fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.id, extension)
+	retryParams := &retrier.RetryParams{
+		URL:     fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.id, extension),
+		Client:  httpClient7TV,
+		Retries: retries7TV,
+	}
 
-	data, err := downloadFile(emoteURL)
+	data, err := retrier.Download(retryParams)
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to download emote %s: %w", e.id, err)
 	}
@@ -64,64 +63,55 @@ func (e sevenTVEmote) Download() (EmoteData, error) {
 	}, nil
 }
 
-func (e sevenTVEmote) ID() string {
+func (e *sevenTVEmote) ID() string {
 	return e.id
 }
 
-func (e sevenTVEmote) Keywords() []string {
+func (e *sevenTVEmote) Keywords() []string {
 	return e.keywords
 }
 
-func (e sevenTVEmote) EmojiList() []string {
+func (e *sevenTVEmote) EmojiList() []string {
 	return e.emojiList
 }
 
-func (e sevenTVEmote) String() string {
+func (e *sevenTVEmote) String() string {
 	return fmt.Sprintf("7tv:%s", e.id)
 }
 
-func (e sevenTVEmote) isAnimated() (bool, error) {
-	retries := config.Load().DownloadRetries()
-
-	for attempt := 0; attempt < retries; attempt++ {
-		isAnimated, err := e.attemptIsAnimated()
-		if err == nil {
-			return isAnimated, nil
-		}
-
-		log.Printf("Checking animation status for %s failed %d/%d: %v", e.id, attempt+1, retries, err)
-
-		// Don't sleep after the last attempt
-		if attempt < retries-1 {
-			sleepWithBackoff(attempt)
-		}
-	}
-
-	return false, fmt.Errorf("failed to determine animation status for %s", e.id)
-}
-
-func (e sevenTVEmote) attemptIsAnimated() (bool, error) {
+func (e *sevenTVEmote) isAnimated() (bool, error) {
 	// Currently using an old api, if it's deprecated...
 	// We'll have to deal with GraphQL...
-	requestURL := fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.id)
-	resp, err := http.Get(requestURL)
+	retryParams := &retrier.RetryParams{
+		URL:     fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.id),
+		Client:  httpClient7TV,
+		Retries: retries7TV,
+	}
+	resp, err := retrier.RequestWithCallback(retryParams, animatedRespCallback)
 	if err != nil {
-		return false, fmt.Errorf("failed to request %s: %w", requestURL, err)
+		return false, fmt.Errorf("failed to determine animated status: %v", err)
 	}
 	defer resp.Body.Close()
 
+	var info sevenTVResponse
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return false, fmt.Errorf("failed to parse 7tv response")
+	}
+
+	return info.Animated, nil
+}
+
+func animatedRespCallback(resp *http.Response) error {
 	switch resp.StatusCode {
 	case http.StatusNotFound:
-		return false, fmt.Errorf("emote does not exist")
+		return fmt.Errorf("emote does not exist")
 	case http.StatusBadRequest:
-		return false, fmt.Errorf("wrong ID")
+		return fmt.Errorf("wrong ID")
 	case http.StatusOK:
-		var info sevenTVResponse
-		if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-			return false, fmt.Errorf("failed to parse 7tv response for %s: %w", requestURL, err)
-		}
-		return info.Animated, nil
+		return nil
 	default:
-		return false, fmt.Errorf("request to %s returned unexpected status code %d", requestURL, resp.StatusCode)
+		return fmt.Errorf(
+			"request returned unexpected status code %d", resp.StatusCode,
+		)
 	}
 }

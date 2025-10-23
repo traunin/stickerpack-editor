@@ -25,7 +25,7 @@ type EmoteInput struct {
 	EmojiList []string `json:"emoji_list"`
 }
 
-func (e EmoteInput) ToEmote() (Emote, error) {
+func (e *EmoteInput) ToEmote() (Emote, error) {
 	if len(e.Keywords) > maxKeywords {
 		return nil, fmt.Errorf("max %d keywords is supported", maxKeywords)
 	}
@@ -37,9 +37,12 @@ func (e EmoteInput) ToEmote() (Emote, error) {
 	metaKeywords := append(append([]string{}, e.Keywords...), e.Source)
 	switch e.Source {
 	case "7tv":
-		return newSevenTVEmote(e.ID, metaKeywords, e.EmojiList)
+        if !isValid7TVId(e.ID) {
+            return nil, fmt.Errorf("id %s invalid", e.ID)
+        }
+        return &sevenTVEmote{e.ID, metaKeywords, e.EmojiList}, nil
 	case "tenor":
-		return newTenorEmote(e.ID, metaKeywords, e.EmojiList)
+		return &tenorEmote{e.ID, metaKeywords, e.EmojiList}, nil
 	default:
 		return nil, fmt.Errorf("unsupported source %s", e.Source)
 	}

@@ -2,6 +2,18 @@ package emote
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/retrier"
+)
+
+var (
+	retriesTenor    = config.Load().DownloadRetries()
+	httpClientTenor = &http.Client{
+		Timeout: 12 * time.Second,
+	}
 )
 
 type tenorEmote struct {
@@ -10,19 +22,13 @@ type tenorEmote struct {
 	emojiList []string
 }
 
-func newTenorEmote(id string, keywords, emojiList []string) (tenorEmote, error) {
-	// no checks for keywords and emojis since it's supposed to be checked in toEmote
-	return tenorEmote{
-		id,
-		keywords,
-		emojiList,
-	}, nil
-}
-
-func (e tenorEmote) Download() (EmoteData, error) {
-	emoteURL := fmt.Sprintf("https://media.tenor.com/%s", e.id)
-
-	data, err := downloadFile(emoteURL)
+func (e *tenorEmote) Download() (EmoteData, error) {
+	retryParams := &retrier.RetryParams{
+		URL:     fmt.Sprintf("https://media.tenor.com/%s", e.id),
+		Client:  httpClientTenor,
+		Retries: retriesTenor,
+	}
+	data, err := retrier.Download(retryParams)
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to download emote %s: %w", e.id, err)
 	}
@@ -33,18 +39,18 @@ func (e tenorEmote) Download() (EmoteData, error) {
 	}, nil
 }
 
-func (e tenorEmote) ID() string {
+func (e *tenorEmote) ID() string {
 	return e.id
 }
 
-func (e tenorEmote) Keywords() []string {
+func (e *tenorEmote) Keywords() []string {
 	return e.keywords
 }
 
-func (e tenorEmote) EmojiList() []string {
+func (e *tenorEmote) EmojiList() []string {
 	return e.emojiList
 }
 
-func (e tenorEmote) String() string {
+func (e *tenorEmote) String() string {
 	return fmt.Sprintf("tenor:%s", e.id)
 }
