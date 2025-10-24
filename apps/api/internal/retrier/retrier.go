@@ -1,6 +1,7 @@
 package retrier
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -21,13 +22,17 @@ type RetryParams struct {
 
 type RetryCallback func(*http.Response) error
 
-func Download(params *RetryParams) ([]byte, error) {
+func Download(ctx context.Context, params *RetryParams) ([]byte, error) {
 	client := params.Client
 	url := params.URL
 	retries := params.Retries
 
 	for attempt := 1; attempt <= retries; attempt++ {
-		data, err := attemptDownload(url, client)
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("context cancelled: %w", err)
+		}
+
+		data, err := attemptDownload(ctx, url, client)
 		if err == nil {
 			return data, nil
 		}
@@ -38,7 +43,9 @@ func Download(params *RetryParams) ([]byte, error) {
 
 		// don't sleep after the last attempt
 		if attempt < retries {
-			sleepWithBackoff(attempt - 1)
+			if err := sleepWithBackoff(ctx, attempt-1); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -46,8 +53,17 @@ func Download(params *RetryParams) ([]byte, error) {
 	return nil, err
 }
 
-func attemptDownload(url string, client *http.Client) ([]byte, error) {
-	resp, err := client.Get(url)
+func attemptDownload(
+	ctx context.Context,
+	url string,
+	client *http.Client,
+) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +82,7 @@ func attemptDownload(url string, client *http.Client) ([]byte, error) {
 // is returned to the caller, and it is the caller’s responsibility to close resp.Body.
 // Otherwise, the response body is automatically closed before the next attempt.
 func RequestWithCallback(
+	ctx context.Context,
 	params *RetryParams,
 	callback RetryCallback,
 ) (*http.Response, error) {
@@ -74,42 +91,82 @@ func RequestWithCallback(
 	retries := params.Retries
 
 	for attempt := 1; attempt <= retries; attempt++ {
-		resp, err := client.Get(url)
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("context cancelled: %w", err)
+		}
+
+		resp, err := attemptRequest(ctx, url, client)
 		if err != nil {
 			log.Printf(
 				"request of %s failed (%d/%d): %v", url, attempt, retries, err,
 			)
+			if attempt < retries {
+				if err := sleepWithBackoff(ctx, attempt-1); err != nil {
+					return nil, err
+				}
+			}
 			continue
 		}
 
-		// if callback panics
-		var callbackErr error = nil
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					resp.Body.Close()
-					callbackErr = fmt.Errorf("callback panicked: %v", r)
-				}
-			}()
-			callbackErr = callback(resp)
-		}()
-
-		if callbackErr == nil {
+		if err := invokeCallback(resp, callback); err == nil {
 			return resp, nil
 		}
-		resp.Body.Close()
 
 		// don't sleep after the last attempt
 		if attempt < retries {
-			sleepWithBackoff(attempt - 1)
+			if err := sleepWithBackoff(ctx, attempt-1); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return nil, fmt.Errorf("no valid response in %d requests", retries)
 }
 
-func sleepWithBackoff(attempt int) {
+func attemptRequest(
+	ctx context.Context,
+	url string,
+	client *http.Client,
+) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Do(req)
+}
+
+func invokeCallback(resp *http.Response, callback RetryCallback) error {
+	var callbackErr error
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				resp.Body.Close()
+				callbackErr = fmt.Errorf("callback panicked: %v", r)
+			}
+		}()
+		callbackErr = callback(resp)
+	}()
+
+	if callbackErr != nil {
+		resp.Body.Close()
+	}
+
+	return callbackErr
+}
+
+func sleepWithBackoff(ctx context.Context, attempt int) error {
 	sleep := baseDelay * (1 << attempt)
 	randomDelay := time.Duration(rand.Int63n(int64(sleep / 2)))
-	time.Sleep(sleep + randomDelay)
+	totalSleep := sleep + randomDelay
+
+	timer := time.NewTimer(totalSleep)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }

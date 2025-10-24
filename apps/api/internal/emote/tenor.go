@@ -1,6 +1,7 @@
 package emote
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -22,15 +23,17 @@ type tenorEmote struct {
 	emojiList []string
 }
 
-func (e *tenorEmote) Download() (EmoteData, error) {
+func (e *tenorEmote) Download(ctx context.Context) (EmoteData, error) {
 	retryParams := &retrier.RetryParams{
 		URL:     fmt.Sprintf("https://media.tenor.com/%s", e.id),
 		Client:  httpClientTenor,
 		Retries: retriesTenor,
 	}
-	data, err := retrier.Download(retryParams)
+	data, err := retrier.Download(ctx, retryParams)
 	if err != nil {
-		return EmoteData{}, fmt.Errorf("failed to download emote %s: %w", e.id, err)
+		return EmoteData{}, fmt.Errorf(
+			"failed to download emote %s: %w", e.id, err,
+		)
 	}
 
 	return EmoteData{

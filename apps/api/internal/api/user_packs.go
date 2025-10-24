@@ -178,21 +178,17 @@ func parseEmote(ctx context.Context, input emote.EmoteInput) (telegram.InputStic
 		return telegram.InputSticker{}, err
 	}
 
-	select {
-	case <-ctx.Done():
-		return telegram.InputSticker{}, ctx.Err()
-	default:
+	if err := ctx.Err(); err != nil {
+		return telegram.InputSticker{}, err
 	}
 
-	emoteData, err := emote.Download()
+	emoteData, err := emote.Download(ctx)
 	if err != nil {
 		return telegram.InputSticker{}, err
 	}
 
-	select {
-	case <-ctx.Done():
-		return telegram.InputSticker{}, ctx.Err()
-	default:
+	if err := ctx.Err(); err != nil {
+		return telegram.InputSticker{}, err
 	}
 
 	if err := resize.FitEmote(&emoteData); err != nil {

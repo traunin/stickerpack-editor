@@ -1,6 +1,7 @@
 package emote
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -39,8 +40,8 @@ var extensions = map[bool]string{
 	false: ".png",
 }
 
-func (e *sevenTVEmote) Download() (EmoteData, error) {
-	isAnimated, err := e.isAnimated()
+func (e *sevenTVEmote) Download(ctx context.Context) (EmoteData, error) {
+	isAnimated, err := e.isAnimated(ctx)
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to get data for %s: %w", e.id, err)
 	}
@@ -52,7 +53,7 @@ func (e *sevenTVEmote) Download() (EmoteData, error) {
 		Retries: retries7TV,
 	}
 
-	data, err := retrier.Download(retryParams)
+	data, err := retrier.Download(ctx, retryParams)
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to download emote %s: %w", e.id, err)
 	}
@@ -79,7 +80,7 @@ func (e *sevenTVEmote) String() string {
 	return fmt.Sprintf("7tv:%s", e.id)
 }
 
-func (e *sevenTVEmote) isAnimated() (bool, error) {
+func (e *sevenTVEmote) isAnimated(ctx context.Context) (bool, error) {
 	// Currently using an old api, if it's deprecated...
 	// We'll have to deal with GraphQL...
 	retryParams := &retrier.RetryParams{
@@ -87,7 +88,9 @@ func (e *sevenTVEmote) isAnimated() (bool, error) {
 		Client:  httpClient7TV,
 		Retries: retries7TV,
 	}
-	resp, err := retrier.RequestWithCallback(retryParams, animatedRespCallback)
+	resp, err := retrier.RequestWithCallback(
+		ctx, retryParams, animatedRespCallback,
+	)
 	if err != nil {
 		return false, fmt.Errorf("failed to determine animated status: %v", err)
 	}

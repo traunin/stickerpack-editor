@@ -1,12 +1,15 @@
 package emote
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 const maxKeywords = 20 - 5 // the tg limit is 20, we need 2, 5 is just to be safe
 const maxEmojis = 20
 
 type Emote interface {
-	Download() (EmoteData, error)
+	Download(context.Context) (EmoteData, error)
 	Keywords() []string
 	EmojiList() []string
 	ID() string
