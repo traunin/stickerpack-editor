@@ -108,12 +108,6 @@ func RequestWithCallback(
 	return nil, fmt.Errorf("no valid response in %d requests", retries)
 }
 
-func Request(params *RetryParams) (*http.Response, error) {
-	return RequestWithCallback(params, func(r *http.Response) error {
-		return nil
-	})
-}
-
 func sleepWithBackoff(attempt int) {
 	sleep := baseDelay * (1 << attempt)
 	randomDelay := time.Duration(rand.Int63n(int64(sleep / 2)))
