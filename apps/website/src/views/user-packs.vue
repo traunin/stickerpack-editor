@@ -1,5 +1,5 @@
 <template>
-  <div class="user-packs-row">
+  <div class="user-packs-scroll">
     <UserPacksList class="user-packs" />
   </div>
 </template>
@@ -9,17 +9,20 @@ import UserPacksList from '@/components/user-packs-list.vue'
 </script>
 
 <style scoped>
-.user-packs-row {
+.user-packs-scroll {
   flex: 1;
   align-self: stretch;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  scrollbar-color: var(--accent) var(--input);
+  scrollbar-width: thin;
 }
 
 .user-packs {
   flex: 1;
   padding: 20px;
-  background: var(--panel)
+  max-width: 1150px;
 }
 </style>

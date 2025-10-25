@@ -1,6 +1,6 @@
 <template>
-  <div class="public-packs-row">
-    <PublicPacksList class="public-packs" />
+  <div class="shared-packs-scroll">
+    <PublicPacksList class="shared-packs" />
   </div>
 </template>
 
@@ -9,17 +9,20 @@ import PublicPacksList from '@/components/public-packs-list.vue'
 </script>
 
 <style scoped>
-.public-packs-row {
+.shared-packs-scroll {
   flex: 1;
   align-self: stretch;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  scrollbar-color: var(--accent) var(--input);
+  scrollbar-width: thin;
 }
 
-.public-packs {
+.shared-packs {
   flex: 1;
   padding: 20px;
-  background: var(--panel)
+  max-width: 1150px;
 }
 </style>

@@ -12,21 +12,16 @@
       Log in to see your packs
     </div>
     <div v-else class="packs-paginated">
-      <div class="back">
-        <button :disabled="!hasPrevPage" @click="prev">
-          &lt;
-        </button>
-      </div>
-      <div v-if="loading" class="results loading">
+      <div v-if="isLoading" class="results loading">
         <LoadingAnimation />
       </div>
-      <div v-else-if="noPacks" class="results">
+      <div v-else-if="total === 0" class="results">
         You don't have any packs
       </div>
-      <div v-else-if="error" class="results">
+      <div v-else-if="isError" class="results">
         {{ error }}
       </div>
-      <div v-else ref="container" class="results packs">
+      <div v-else class="results packs">
         <div
           v-for="stickerpack in packs"
           :key="stickerpack.id"
@@ -39,12 +34,11 @@
             X
           </div>
         </div>
+        <div v-if="isFetchingNextPage" class="results loading">
+          <LoadingAnimation />
+        </div>
       </div>
-      <div class="forward">
-        <button :disabled="!hasNextPage" @click="next">
-          &gt;
-        </button>
-      </div>
+      <div ref="scrollTrigger" style="height: 1px;" />
     </div>
     <ConfirmModal
       v-if="showConfirm"
@@ -56,62 +50,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ConfirmModal from '@/components/confirm-modal.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import ModalLoading from '@/components/modal-loading.vue'
 import StickerpackPreview from '@/components/stickerpack-preview.vue'
 import { useDeletePackMutation } from '@/composables/use-delete-pack-mutation'
-import { usePageSize } from '@/composables/use-page-size'
-import { useUserPacks } from '@/composables/use-user-packs'
+import { useScrollUserPacks } from '@/composables/use-scroll-user-packs'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 
 const showConfirm = ref(false)
 const deletedPackName = ref('')
 
 const authStore = useTgAuthStore()
-const container = ref<HTMLElement | null>(null)
-const { pageSize, updatePageSize } = usePageSize(container)
-const page = ref(1)
-
-const { data, error, isFetching, isLoading } = useUserPacks(
-  page,
-  pageSize,
-  computed(() => authStore.isLoggedIn),
-)
 
 const deletePackMutation = useDeletePackMutation()
 
-const packs = computed(() => data.value?.packs ?? [])
-const maxPages = computed(() => data.value ? Math.ceil(data.value.total / pageSize.value) : 1)
-
-const noPacks = computed(() => !isFetching.value && packs.value.length === 0)
-const loading = computed(() => isLoading.value)
-const hasPrevPage = computed(() => page.value > 1)
-const hasNextPage = computed(() => page.value < maxPages.value)
-
 const isDeleting = computed(() => deletePackMutation.isPending.value)
 const deletionError = computed(() => deletePackMutation.deletionError.value)
-
-function next() {
-  if (page.value < maxPages.value) {
-    page.value++
-  }
-}
-
-function prev() {
-  if (page.value > 1) {
-    page.value--
-  }
-}
-
-watch(packs, async (newPacks) => {
-  if (newPacks && newPacks.length > 0) {
-    await nextTick()
-    updatePageSize()
-  }
-}, { immediate: true })
 
 function confirmDelete(name: string) {
   deletedPackName.value = name
@@ -133,15 +90,70 @@ async function removePack() {
     deletedPackName.value = ''
   }
 }
+
+const {
+  packs,
+  total,
+  isLoading,
+  isFetchingNextPage,
+  hasMore,
+  loadMore,
+  isError,
+  error,
+} = useScrollUserPacks()
+const loadTriggerOffset = 500
+
+const scrollTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+onMounted(async () => {
+  await nextTick()
+  observer = new IntersectionObserver(
+    (entries) => {
+      const target = entries[0]
+
+      if (target.isIntersecting && hasMore.value && !isFetchingNextPage.value) {
+        loadMore()
+      }
+    },
+    {
+      root: null,
+      // @ts-expect-error scroll-margin was not included in IntersectionObserverInit
+      scrollMargin: `${loadTriggerOffset}px`,
+      threshold: 0,
+    },
+  )
+  if (scrollTrigger.value) {
+    observer.observe(scrollTrigger.value)
+  }
+})
+
+function checkAndLoadMore() {
+  if (!scrollTrigger.value || !hasMore.value || isFetchingNextPage.value) {
+    return
+  }
+  const rect = scrollTrigger.value.getBoundingClientRect()
+  const isVisible = rect.top - loadTriggerOffset < window.innerHeight
+  if (isVisible) {
+    loadMore()
+    setTimeout(checkAndLoadMore, 300)
+  }
+}
+
+watch([() => packs.value.length, isFetchingNextPage], ([length, fetching]) => {
+  if (!fetching && length > 0) {
+    setTimeout(checkAndLoadMore, 100)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect()
+  }
+})
 </script>
 
 <style scoped>
-.packs-paginated {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-}
-
 .results {
   flex: 1;
   display: flex;
@@ -150,9 +162,9 @@ async function removePack() {
 }
 
 .packs {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 202px);
+  gap: 15px;
 }
 
 .pack {
