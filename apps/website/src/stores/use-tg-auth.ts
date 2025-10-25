@@ -6,6 +6,7 @@ import type { User } from '@/api/session'
 export const useTgAuthStore = defineStore('use-tg-auth', () => {
   const isLoggedIn = ref(false)
   const username = ref('')
+  const photoURL = ref('')
   const isLoading = ref(false)
 
   async function logIn(user: User) {
@@ -13,6 +14,7 @@ export const useTgAuthStore = defineStore('use-tg-auth', () => {
     if (await createSession(user)) {
       isLoggedIn.value = true
       username.value = user.username
+      photoURL.value = user.photo_url
     }
     isLoading.value = false
   }
@@ -24,6 +26,7 @@ export const useTgAuthStore = defineStore('use-tg-auth', () => {
       if (success) {
         isLoggedIn.value = false
         username.value = ''
+        photoURL.value = ''
       }
     } catch (err) {
       console.log(err)
@@ -34,11 +37,11 @@ export const useTgAuthStore = defineStore('use-tg-auth', () => {
 
   // check if jwt is set?
 
-  return { isLoggedIn, username, logIn, logOut, isLoading }
+  return { isLoggedIn, username, photoURL, logIn, logOut, isLoading }
 }, {
   persist: {
     key: 'use-tg-auth',
     storage: localStorage,
-    pick: ['username', 'isLoggedIn'],
+    pick: ['username', 'photoURL', 'isLoggedIn'],
   },
 })

@@ -1,20 +1,32 @@
 <template>
-  <div class="dropdown">
+  <div class="user-modal">
     <CreateLink class="create" @click="open = false" />
     <div class="user-info" @click="open = !open">
       <img src="@/assets/hi.gif" alt="">
-      {{ authStore.username }}
       <img :src="authStore.photoURL" alt="" class="profile-picture">
     </div>
     <Transition name="fade">
-      <ul v-if="open">
-        <li>
-          <DropdownThemeButton />
-        </li>
-        <li>
-          <DropdownLogoutButton />
-        </li>
-      </ul>
+      <nav v-if="open">
+        <ul>
+          <li
+            v-for="(route, i) in navbarRoutes"
+            :key="route.path"
+            :class="[{ 'route-last': i === navbarRoutes.length - 1 }, { 'route-first': i === 0 }]"
+            @click="open = false"
+          >
+            <NavbarElement
+              :route="route"
+              orientation="vertical"
+            />
+          </li>
+          <li class="theme-switch">
+            <DropdownThemeButton />
+          </li>
+          <li class="sign-out" @click="open = false">
+            <DropdownLogoutButton />
+          </li>
+        </ul>
+      </nav>
     </Transition>
   </div>
 </template>
@@ -24,6 +36,8 @@ import { ref } from 'vue'
 import CreateLink from '@/components/create-link.vue'
 import DropdownLogoutButton from '@/components/dropdown-logout-button.vue'
 import DropdownThemeButton from '@/components/dropdown-theme-button.vue'
+import NavbarElement from '@/components/navbar-element.vue'
+import { navbarRoutes } from '@/router'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 
 const open = ref(false)
@@ -38,17 +52,10 @@ const authStore = useTgAuthStore()
   border-radius: 100%;
 }
 
-.dropdown {
-  position: relative;
-  display: flex;
-  gap: 20px;
-}
-
 .user-info {
   font-size: 1.2em;
   display: flex;
   align-items: center;
-  gap: 10px;
   height: 40px;
   border-radius: 10px;
   padding: 22px 15px;
@@ -60,40 +67,53 @@ const authStore = useTgAuthStore()
   background: var(--panel);
 }
 
-ul {
+.user-modal {
+  display: flex;
+  gap: 10px;
+}
+
+nav {
   position: absolute;
-  top: 100%;
-  right: 0;
+  inset: 42px 0 0 0;
   background: var(--input);
   margin-top: 8px;
   border: var(--border) 2px solid;
-  width: 200px;
   align-items: stretch;
   z-index: 10;
-  border-radius: 10px;
-  overflow: hidden;
+}
+
+ul {
+  margin: 10px;
 }
 
 li {
-  display: flex;
-  cursor: pointer;
-}
-
-li:first-child {
-  border-bottom: 1px solid var(--border);
-}
-
-li:hover {
   background: var(--panel);
+  overflow: hidden;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.1s;
+.route-last {
+  margin-bottom: 10px;
+  border-radius: 0 0 10px 10px;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.route-first {
+  border-radius: 10px 10px 0 0;
+}
+
+.theme-switch {
+  margin-bottom: 10px;
+  border-radius: 10px;
+}
+
+.sign-out {
+  border-radius: 10px;
+}
+
+li > *:first-child {
+  width: 100%
+}
+
+li > *:first-child:hover {
+  background: var(--panel);
 }
 </style>

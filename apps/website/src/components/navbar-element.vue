@@ -1,7 +1,7 @@
 <template>
   <RouterLink
     :to="route.path"
-    class="link"
+    class="link" :class="[orientation]"
     active-class="active"
     draggable="false"
   >
@@ -14,6 +14,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 defineProps<{
   route: RouteRecordRaw
+  orientation?: 'horizontal' | 'vertical'
 }>()
 </script>
 
@@ -29,6 +30,11 @@ defineProps<{
   border-top: 2px solid transparent;
   border-bottom: 2px solid transparent;
   user-select: none;
+}
+
+.vertical {
+  border: none;
+  justify-content: flex-start;
 }
 
 .link:hover {

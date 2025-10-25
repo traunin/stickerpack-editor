@@ -4,7 +4,7 @@
     class="link"
     draggable="false"
   >
-    <AddIcon class="logo"/>
+    <AddIcon class="logo" />
     <span class="text">
       Create
     </span>
@@ -35,5 +35,15 @@ import AddIcon from '@/assets/icons/add.svg'
   width: 20px;
   height: 20px;
   color: var(--text);
+}
+
+.text {
+  display: none;
+}
+
+@media screen and (min-width: 1000px) {
+  .text {
+    display: block;
+  }
 }
 </style>

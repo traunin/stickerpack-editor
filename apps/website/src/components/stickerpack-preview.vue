@@ -22,16 +22,16 @@
       />
     </div>
     <a :href="tgLink" class="tg-link" target="_blank">
-      <img src="@/assets/icons/tglogo.png" alt="Telegram icon">
+      <img src="@/assets/icons/tglogo.png" alt="Telegram icon" width="32" height="32">
     </a>
   </div>
 </template>
 
 <script setup lang="ts">
+import LoadingAnimation from '@/components/loading-animation.vue'
 import { useThumbnail } from '@/composables/use-thumbnail'
 import { useTrimmedString } from '@/composables/use-trimmed-string'
 import type { PackResponse } from '@/types/pack'
-import LoadingAnimation from './loading-animation.vue'
 
 const props = defineProps<{ stickerpack: PackResponse }>()
 
