@@ -16,7 +16,7 @@
     </div>
 
     <div v-else class="results stickers">
-      <SearchResult7tv
+      <SearchResult7TV
         v-for="emote in emotes"
         :key="emote.id"
         :emote="emote"
@@ -44,7 +44,7 @@
 import { useDebounce } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
-import SearchResult7tv from '@/components/search-result-7tv.vue'
+import SearchResult7TV from '@/components/search-result-7tv.vue'
 import { use7tvSearch } from '@/composables/use-7tv-search'
 import type { Emote, Sticker } from '@/types/sticker'
 
