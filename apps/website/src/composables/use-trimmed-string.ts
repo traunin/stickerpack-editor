@@ -12,5 +12,5 @@ export function useTrimmedString(
       `${value.substring(0, trimmedLength - 3)}...`
   })
 
-  return { trimmed }
+  return trimmed
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="stickerpack-preview">
     <div class="title">
-      {{ trimmed }}
+      {{ trimmedTitle }}
     </div>
     <div class="preview">
       <LoadingAnimation v-if="isLoading" />
@@ -35,7 +35,7 @@ import type { PackResponse } from '@/types/pack'
 
 const props = defineProps<{ stickerpack: PackResponse }>()
 
-const { trimmed } = useTrimmedString(props.stickerpack.title, 21)
+const trimmedTitle = useTrimmedString(props.stickerpack.title, 21)
 const tgLink = `https://t.me/addstickers/${props.stickerpack.name}`
 
 const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack.thumbnail_id)
