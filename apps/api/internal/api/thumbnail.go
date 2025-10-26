@@ -15,17 +15,18 @@ import (
 	"github.com/patrickmn/go-cache"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/retrier"
 )
 
 const (
-	contentTypeBufferSize = 512
-	cacheControl          = "public, max-age=36000"
+	cacheControl = "public, max-age=36000"
 )
 
 var (
-	httpClient     = &http.Client{Timeout: 15 * time.Second}
-	fileInfoCache  = cache.New(55*time.Minute, 20*time.Minute)
-	detectionLocks sync.Map
+	thumbnailRetries = config.Load().DownloadRetries()
+	httpClient       = &http.Client{Timeout: 15 * time.Second}
+	fileInfoCache    = cache.New(55*time.Minute, 20*time.Minute)
+	detectionLocks   sync.Map
 )
 
 type CachedFileInfo struct {
@@ -34,14 +35,13 @@ type CachedFileInfo struct {
 }
 
 type StreamContext struct {
-    Writer      http.ResponseWriter
-    Body        io.Reader
-    ThumbnailID string
-    FileURL     string
+	Writer      http.ResponseWriter
+	Data        []byte
+	ThumbnailID string
+	FileURL     string
 }
 
 type FileStreamRequest struct {
-	Ctx         context.Context
 	Writer      http.ResponseWriter
 	FileInfo    *CachedFileInfo
 	ThumbnailID string
@@ -49,8 +49,7 @@ type FileStreamRequest struct {
 
 type DetectedStreamContext struct {
 	Writer      http.ResponseWriter
-	Body        io.Reader
-	FirstChunk  []byte
+	Data        []byte
 	ContentType string
 }
 
@@ -66,6 +65,7 @@ type GetFileResponse struct {
 
 func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Load()
+	ctx := r.Context()
 
 	thumbnailID, err := extractThumbnailID(r)
 	if err != nil {
@@ -73,7 +73,7 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileInfo, err := getCachedOrFetchFileInfo(cfg, thumbnailID)
+	fileInfo, err := getCachedOrFetchFileInfo(ctx, cfg, thumbnailID)
 	if err != nil {
 		log.Printf("Error fetching file info for %s: %v\n", thumbnailID, err)
 		http.Error(w, "failed getting a download link", http.StatusBadGateway)
@@ -81,12 +81,11 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := FileStreamRequest{
-		Ctx:         r.Context(),
 		Writer:      w,
 		FileInfo:    fileInfo,
 		ThumbnailID: thumbnailID,
 	}
-	if err := streamFileAndMaybeDetect(req); err != nil {
+	if err := streamFileAndMaybeDetect(ctx, req); err != nil {
 		if !isClientDisconnect(err) {
 			log.Printf("Error streaming file %s: %v\n", thumbnailID, err)
 		}
@@ -95,6 +94,7 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCachedOrFetchFileInfo(
+	ctx context.Context,
 	cfg *config.Config,
 	thumbnailID string,
 ) (*CachedFileInfo, error) {
@@ -102,7 +102,11 @@ func getCachedOrFetchFileInfo(
 		return info.(*CachedFileInfo), nil
 	}
 
-	fileURL, err := downloadLink(cfg, thumbnailID)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	fileURL, err := downloadLink(ctx, cfg, thumbnailID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,22 +129,21 @@ func extractThumbnailID(r *http.Request) (string, error) {
 	return thumbnailID, nil
 }
 
-func streamFileAndMaybeDetect(req FileStreamRequest) error {
-	resp, err := downloadFileWithContext(req.Ctx, req.FileInfo.URL)
+func streamFileAndMaybeDetect(ctx context.Context, req FileStreamRequest) error {
+	data, err := downloadFile(ctx, req.FileInfo.URL)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
 	// Content-Type already cached
 	if contentType := req.FileInfo.ContentType; contentType != "" {
-		return streamWithCachedType(req.Writer, resp.Body, contentType)
+		return streamWithCachedType(req.Writer, data, contentType)
 	}
 
 	// detect content type
 	streamCtx := StreamContext{
 		Writer:      req.Writer,
-		Body:        resp.Body,
+		Data:        data,
 		ThumbnailID: req.ThumbnailID,
 		FileURL:     req.FileInfo.URL,
 	}
@@ -149,13 +152,13 @@ func streamFileAndMaybeDetect(req FileStreamRequest) error {
 
 func streamWithCachedType(
 	w http.ResponseWriter,
-	body io.Reader,
+	data []byte,
 	contentType string,
 ) error {
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", cacheControl)
 
-	if _, err := io.Copy(w, body); err != nil {
+	if _, err := w.Write(data); err != nil {
 		if isClientDisconnect(err) {
 			return nil
 		}
@@ -166,26 +169,21 @@ func streamWithCachedType(
 }
 
 func detectAndStream(ctx StreamContext) error {
-    mu := acquireDetectionLock(ctx.ThumbnailID)
-    defer releaseDetectionLock(ctx.ThumbnailID)
-    mu.Lock()
-    defer mu.Unlock()
+	mu := acquireDetectionLock(ctx.ThumbnailID)
+	mu.Lock()
+	defer mu.Unlock()
+	defer releaseDetectionLock(ctx.ThumbnailID)
 
-    if contentType := getCachedContentType(ctx.ThumbnailID); contentType != "" {
-        return streamWithCachedType(ctx.Writer, ctx.Body, contentType)
-    }
+	if contentType := getCachedContentType(ctx.ThumbnailID); contentType != "" {
+		return streamWithCachedType(ctx.Writer, ctx.Data, contentType)
+	}
 
-    contentType, buffer, n, err := detectContentTypeFromStream(ctx.Body)
-    if err != nil {
-        return err
-    }
-
-    updateCachedContentType(ctx.ThumbnailID, ctx.FileURL, contentType)
+	contentType := detectContentTypeFromStream(ctx.Data)
+	updateCachedContentType(ctx.ThumbnailID, ctx.FileURL, contentType)
 
 	streamCtx := DetectedStreamContext{
 		Writer:      ctx.Writer,
-		Body:        ctx.Body,
-		FirstChunk:  buffer[:n],
+		Data:        ctx.Data,
 		ContentType: contentType,
 	}
 	return streamWithDetectedType(streamCtx)
@@ -209,16 +207,9 @@ func getCachedContentType(thumbnailID string) string {
 	return ""
 }
 
-func detectContentTypeFromStream(body io.Reader) (string, []byte, int, error) {
-	buffer := make([]byte, contentTypeBufferSize)
-	n, err := io.ReadFull(body, buffer)
-	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
-		errMsg := fmt.Errorf("failed to read content type response: %w", err)
-		return "", nil, 0, errMsg
-	}
-
-	contentType := http.DetectContentType(buffer[:n])
-	return contentType, buffer, n, nil
+func detectContentTypeFromStream(data []byte) string {
+	contentType := http.DetectContentType(data)
+	return contentType
 }
 
 func updateCachedContentType(thumbnailID, fileURL, contentType string) {
@@ -233,14 +224,7 @@ func streamWithDetectedType(ctx DetectedStreamContext) error {
 	ctx.Writer.Header().Set("Content-Type", ctx.ContentType)
 	ctx.Writer.Header().Set("Cache-Control", cacheControl)
 
-	if _, err := ctx.Writer.Write(ctx.FirstChunk); err != nil {
-		if isClientDisconnect(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to write initial buffer: %w", err)
-	}
-
-	if _, err := io.Copy(ctx.Writer, ctx.Body); err != nil {
+	if _, err := ctx.Writer.Write(ctx.Data); err != nil {
 		if isClientDisconnect(err) {
 			return nil
 		}
@@ -261,36 +245,36 @@ func isClientDisconnect(err error) bool {
 		strings.Contains(errStr, "client disconnected")
 }
 
-func downloadFileWithContext(
-	ctx context.Context,
-	fileURL string,
-) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+func downloadFile(ctx context.Context, fileURL string) ([]byte, error) {
+	params := &retrier.RetryParams{
+		URL:     fileURL,
+		Client:  httpClient,
+		Retries: thumbnailRetries,
 	}
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send download request: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
-		return nil, fmt.Errorf("download response invalid: status %d", resp.StatusCode)
-	}
-
-	return resp, nil
+	return retrier.Download(ctx, params)
 }
 
-func downloadLink(cfg *config.Config, thumbnailID string) (string, error) {
+func downloadLink(
+	ctx context.Context,
+	cfg *config.Config,
+	thumbnailID string,
+) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+
 	botToken := cfg.TelegramToken()
 	reqURL := fmt.Sprintf(
 		"https://api.telegram.org/bot%s/getFile?file_id=%s",
 		botToken,
 		url.QueryEscape(thumbnailID),
 	)
-	resp, err := httpClient.Get(reqURL)
+	params := &retrier.RetryParams{
+		URL:     reqURL,
+		Client:  httpClient,
+		Retries: thumbnailRetries,
+	}
+	resp, err := retrier.RequestWithCallback(ctx, params, downloadLinkCallback)
 	if err != nil {
 		return "", fmt.Errorf("failed getting a download link: %w", err)
 	}
@@ -314,6 +298,17 @@ func downloadLink(cfg *config.Config, thumbnailID string) (string, error) {
 		fileResp.Result.FilePath,
 	)
 	return fileURL, nil
+}
+
+func downloadLinkCallback(resp *http.Response) error {
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf(
+			"tg request for download link status code %d", resp.StatusCode,
+		)
+	}
 }
 
 func parseGetFileResponse(r io.Reader) (*GetFileResponse, error) {
