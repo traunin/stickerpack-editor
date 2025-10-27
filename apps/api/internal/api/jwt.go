@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const UserIDContextKey = "userID"
@@ -34,12 +34,21 @@ func SignID(id int64) (string, error) {
 func DecodeID(tokenStr string) (int64, error) {
 	key := []byte(config.Load().SecretKey())
 	claims := jwt.MapClaims{}
-	_, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (any, error) {
-		return []byte(key), nil
-	})
+	_, err := jwt.ParseWithClaims(
+		tokenStr,
+		claims,
+		func(token *jwt.Token) (any, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf(
+					"unexpected signing method: %v",
+					token.Header["alg"],
+				)
+			}
+			return []byte(key), nil
+		})
 
 	if err != nil {
-		return 0, fmt.Errorf("error parsing JWT")
+		return 0, fmt.Errorf("error parsing JWT: %w", err)
 	}
 
 	id, ok := claims["id"].(float64)
@@ -73,8 +82,7 @@ func JWTMiddleware(noAuthRoutes []NoAuthRoute, next http.Handler) http.Handler {
 		}
 
 		cookie, err := r.Cookie("jwt")
-		cookieString := cookie.Value
-		if err != nil || cookieString == "" {
+		if err != nil || cookie.Value == "" {
 			http.Error(w, "JWT cookie required", http.StatusUnauthorized)
 			return
 		}
