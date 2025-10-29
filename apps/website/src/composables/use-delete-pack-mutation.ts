@@ -10,26 +10,38 @@ export function useDeletePackMutation() {
   const mutation = useMutation({
     mutationFn: deletePack,
     onSuccess: (_, packName) => {
-      queryClient.setQueriesData<PacksResponse>(
+      queryClient.setQueriesData<{ pages: PacksResponse[], pageParams: number[] }>(
         { queryKey: ['packs', 'user'] },
-        (old) => old ?
-            {
-              ...old,
-              packs: old.packs.filter(pack => pack.name !== packName),
-              total: old.total - 1,
-            } :
-          old,
+        (old) => {
+          if (!old) {
+            return old
+          }
+          return {
+            ...old,
+            pages: old.pages.map(page => ({
+              ...page,
+              packs: page.packs.filter(pack => pack.name !== packName),
+              total: page.total - 1,
+            })),
+          }
+        },
       )
 
-      queryClient.setQueriesData<PacksResponse>(
+      queryClient.setQueriesData<{ pages: PacksResponse[], pageParams: number[] }>(
         { queryKey: ['packs', 'public'] },
-        (old) => old ?
-            {
-              ...old,
-              packs: old.packs.filter(pack => pack.name !== packName),
-              total: old.total > 0 ? old.total - 1 : 0,
-            } :
-          old,
+        (old) => {
+          if (!old) {
+            return old
+          }
+          return {
+            ...old,
+            pages: old.pages.map(page => ({
+              ...page,
+              packs: page.packs.filter(pack => pack.name !== packName),
+              total: page.total > 0 ? page.total - 1 : 0,
+            })),
+          }
+        },
       )
 
       deletionError.value = ''

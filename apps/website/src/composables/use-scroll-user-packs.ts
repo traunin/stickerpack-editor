@@ -5,7 +5,7 @@ import { fetchUserPacks } from '@/api/packs'
 
 export function useScrollUserPacks(pageSize = 10, enabled = true) {
   const queryResult = useInfiniteQuery({
-    queryKey: ['userPacks', pageSize],
+    queryKey: ['packs', 'user', pageSize],
     queryFn: ({ pageParam = 0 }) => fetchUserPacks(pageParam, pageSize),
     getNextPageParam: (lastPage: PacksResponse, allPages) => {
       const loadedCount = allPages.reduce((sum, page) => sum + page.packs.length, 0)
