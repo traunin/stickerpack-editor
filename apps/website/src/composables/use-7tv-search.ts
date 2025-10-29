@@ -1,72 +1,7 @@
 import { ref, watch } from 'vue'
+import { fetchSearchedEmotes } from '@/api/7tv/emote-search'
 import type { Emote } from '@/types/sticker'
 import type { Ref } from 'vue'
-
-interface EmoteSearchResponse {
-  data: {
-    search: {
-      all: {
-        emotes: {
-          items: {
-            id: string
-            defaultName: string
-            images: {
-              url: string
-            }[]
-          }[]
-          pageCount: number
-          totalCount: number
-        }
-      }
-    }
-  }
-}
-
-async function fetchEmotes(query: string, page = 1, pageSize = 10) {
-  const res = await fetch('https://api.7tv.app/v4/gql', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      operationName: 'GlobalSearch',
-      query: `
-        query GlobalSearch($query: String!) {
-          search {
-            all(query: $query, page: ${page}, perPage: ${pageSize}) {
-              emotes {
-                items {
-                  id
-                  defaultName
-                }
-                pageCount
-                totalCount
-              }
-            }
-          }
-        }
-      `,
-      variables: {
-        query,
-        isDefaultSetSet: false,
-        defaultSetId: '',
-      },
-    }),
-  })
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch emotes: ${res.status}`)
-  }
-
-  const json: EmoteSearchResponse = await res.json()
-  const emotes = json.data.search.all.emotes
-  const items = emotes.items
-
-  return { items: items.map((e): Emote => ({
-    id: e.id,
-    name: e.defaultName,
-    preview: `https://cdn.7tv.app/emote/${e.id}/2x.webp`,
-    full: `https://cdn.7tv.app/emote/${e.id}/4x.webp`,
-  })), pageCount: emotes.pageCount }
-}
 
 export function use7tvSearch(query: Ref<string>, pageSize: number) {
   const page = ref(1)
@@ -88,7 +23,7 @@ export function use7tvSearch(query: Ref<string>, pageSize: number) {
     emotes.value = []
 
     try {
-      const { items, pageCount } = await fetchEmotes(q, p, pageSize)
+      const { items, pageCount } = await fetchSearchedEmotes(q, p, pageSize)
       emotes.value = items
       maxPages.value = pageCount
     } catch (e: unknown) {
