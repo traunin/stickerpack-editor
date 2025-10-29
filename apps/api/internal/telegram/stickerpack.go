@@ -252,7 +252,7 @@ func PackThumbnailID(packName string) (string, error) {
 		// 	return firstSticker.Thumbnail.FileID, nil
 		// }
 		// fallback - the sticker itself
-		
+
 		// the thumbnail is not animated, always use the sticker
 		return firstSticker.FileID, nil
 	}

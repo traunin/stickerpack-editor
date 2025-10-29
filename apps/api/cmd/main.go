@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os/exec"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/api"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 )
 
 func init() {

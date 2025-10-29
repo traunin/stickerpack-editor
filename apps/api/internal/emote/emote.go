@@ -40,10 +40,10 @@ func (e *EmoteInput) ToEmote() (Emote, error) {
 	metaKeywords := append(append([]string{}, e.Keywords...), e.Source)
 	switch e.Source {
 	case "7tv":
-        if !isValid7TVId(e.ID) {
-            return nil, fmt.Errorf("id %s invalid", e.ID)
-        }
-        return &sevenTVEmote{e.ID, metaKeywords, e.EmojiList}, nil
+		if !isValid7TVId(e.ID) {
+			return nil, fmt.Errorf("id %s invalid", e.ID)
+		}
+		return &sevenTVEmote{e.ID, metaKeywords, e.EmojiList}, nil
 	case "tenor":
 		return &tenorEmote{e.ID, metaKeywords, e.EmojiList}, nil
 	default:
