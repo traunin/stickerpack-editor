@@ -13,19 +13,19 @@ func init() {
 	_, err := exec.LookPath("ffmpeg")
 
 	if err != nil {
-		log.Fatal("no ffmpeg found on PATH, consider reloading or install if you haven't.")
+		log.Fatal("no ffmpeg on PATH: %w", err)
 	}
 }
 
 func main() {
-	config := config.Load()
+	cfg := config.Load()
 	router := api.SetupRouter()
 
-	addr := ":" + config.Port()
-	log.Printf("Server listening on http://localhost%s", addr)
+	addr := ":" + cfg.Port()
+	log.Printf("listening on port %s", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Exiting...")
+	log.Println("stopping...")
 }
