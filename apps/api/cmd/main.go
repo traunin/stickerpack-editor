@@ -19,11 +19,11 @@ func init() {
 
 func main() {
 	cfg := config.Load()
-	router := api.SetupRouter()
+	handler := api.SetupHandler()
 
 	addr := ":" + cfg.Port()
 	log.Printf("listening on port %s", addr)
-	if err := http.ListenAndServe(addr, router); err != nil {
+	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatal(err)
 	}
 

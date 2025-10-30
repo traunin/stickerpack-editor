@@ -66,7 +66,7 @@ func withContentTypeJSON(h http.Handler) http.Handler {
 	})
 }
 
-func SetupRouter() http.Handler {
+func SetupHandler() http.Handler {
 	cfg := config.Load()
 	jobQueue = queue.NewQueue(cfg.QueueWorkers())
 
