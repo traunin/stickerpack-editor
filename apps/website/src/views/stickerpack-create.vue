@@ -52,9 +52,7 @@
         </draggable>
       </div>
     </div>
-    <button :disabled="!!buttonError" @click="createPack">
-      Create {{ buttonError ? ` | ${buttonError}` : '' }}
-    </button>
+    <ButtonCreatePack :error="buttonError" @click="createPack" />
   </div>
 </template>
 
@@ -63,6 +61,7 @@ import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
 import type { ProgressEvent } from '@/api/stickerpack-upload'
+import ButtonCreatePack from '@/components/button-create-pack.vue'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
@@ -161,18 +160,6 @@ async function createPack() {
 </script>
 
 <style scoped>
-button {
-  background: var(--primary);
-  color: var(--text);
-  font-size: 1.3em;
-  padding: 10px;
-  color: var(--text);
-  border: none;
-  margin-top: 0;
-  cursor: pointer;
-  border-radius: 10px;
-}
-
 .creation-form {
   flex: 1;
   align-self: stretch;
@@ -230,11 +217,6 @@ button {
 .v-enter-from,
 .v-leave-to {
   top: -15%;
-}
-
-button:disabled {
-  background: grey;
-  cursor: default;
 }
 
 .drag-area > :first-child::before {
