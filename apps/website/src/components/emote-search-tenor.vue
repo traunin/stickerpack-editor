@@ -1,51 +1,42 @@
 <template>
   <div class="emote-search">
-    <div class="searchbar">
-      <input
-        v-model="query"
-        class="search"
-        placeholder="Search tenor gifs..."
-      >
-    </div>
-    <div v-if="!debounceQuery" class="results">
-      Type in your query
-    </div>
-
-    <div v-else-if="loading" class="results loading">
-      <LoadingAnimation />
-    </div>
-
-    <div v-else-if="error" class="results">
-      {{ error }}
-    </div>
-
-    <div v-else class="results stickers">
-      <SearchResultTenor
-        v-for="emote in emotes"
-        :key="emote.id"
-        :emote="emote"
-        @click="selectSticker(emote)"
-      />
-    </div>
-
-    <div class="page-controls">
-      <button :disabled="!hasPrev" @click="prev">
-        &lt;
-      </button>
-      <button :disabled="!hasNext" @click="next">
-        &gt;
-      </button>
+    <input
+      v-model="query"
+      class="search"
+      placeholder="Search Tenor emotes..."
+    >
+    <div ref="scrollContainer" class="searched-emotes">
+      <div v-if="!query" class="centered">
+        Start typing...
+      </div>
+      <LoadingAnimation v-else-if="isLoading" class="centered" />
+      <div v-else-if="loaded === 0" class="centered">
+        No emotes found
+      </div>
+      <div v-else-if="isError" class="centered">
+        {{ error }}
+      </div>
+      <template v-else>
+        <SearchResult7TV
+          v-for="emote in emotes"
+          :key="emote.id"
+          :emote="emote"
+          @click="selectEmote(emote)"
+        />
+        <LoadingAnimation v-if="isFetchingNextPage" class="infinite-scroll-loading" />
+      </template>
+      <div ref="scrollTrigger" style="height: 1px; flex-shrink: 0;" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useDebounce } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
-import { useTenorSearch } from '@/composables/use-tenor-emote-search'
+import SearchResult7TV from '@/components/search-result-7tv.vue'
+import { useScrollTenorSearch } from '@/composables/use-scroll-tenor-search'
 import type { Emote, Sticker } from '@/types/sticker'
-import SearchResultTenor from './search-result-tenor.vue'
 
 const emit = defineEmits<{
   (e: 'sticker-selected', sticker: Sticker): void
@@ -54,14 +45,71 @@ const emit = defineEmits<{
 const query = ref('')
 const debounceQuery = useDebounce(query, 300)
 
-const pageSize = 5
-const { emotes, error, hasNext, hasPrev, next, prev } = useTenorSearch(debounceQuery, pageSize)
+const {
+  emotes,
+  loaded,
+  isLoading,
+  isFetchingNextPage,
+  hasMore,
+  loadMore,
+  isError,
+  error,
+} = useScrollTenorSearch(debounceQuery, 10)
 
-const foundStickers = computed(() => emotes.value?.length !== 0)
-const loading = computed(() => !foundStickers.value && error.value == null)
+const loadTriggerOffset = 2000
+const scrollTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+const scrollContainer = ref<HTMLElement | null>(null)
 
-function selectSticker(emote: Emote) {
-  emit('sticker-selected', { ...emote, source: 'tenor', emoji_list: ['😀'] })
+onMounted(async () => {
+  await nextTick()
+  observer = new IntersectionObserver(
+    (entries) => {
+      const target = entries[0]
+
+      if (target.isIntersecting && hasMore.value && !isFetchingNextPage.value) {
+        loadMore()
+      }
+    },
+    {
+      root: scrollContainer.value,
+      rootMargin: `${loadTriggerOffset}px`,
+      // @ts-expect-error scroll-margin was not included in IntersectionObserverInit
+      scrollMargin: `${loadTriggerOffset}px`,
+      threshold: 0,
+    },
+  )
+  if (scrollTrigger.value) {
+    observer.observe(scrollTrigger.value)
+  }
+})
+
+function checkAndLoadMore() {
+  if (!scrollTrigger.value || !hasMore.value || isFetchingNextPage.value) {
+    return
+  }
+  const rect = scrollTrigger.value.getBoundingClientRect()
+  const isVisible = rect.top - loadTriggerOffset < window.innerHeight
+  if (isVisible) {
+    loadMore()
+    setTimeout(checkAndLoadMore, 300)
+  }
+}
+
+watch([() => emotes.value.length, isFetchingNextPage], ([length, fetching]) => {
+  if (!fetching && length > 0) {
+    setTimeout(checkAndLoadMore, 100)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect()
+  }
+})
+
+function selectEmote(emote: Emote) {
+  emit('sticker-selected', { ...emote, source: '7tv', emoji_list: ['😀'] })
 }
 </script>
 
@@ -70,65 +118,41 @@ function selectSticker(emote: Emote) {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-height: 0;
   background: var(--panel);
+  border-radius: 10px;
 }
 
-.results {
+.searched-emotes {
   flex: 1;
   display: flex;
   min-height: 0;
   flex-direction: column;
-  justify-content: space-around;
   overflow-y: auto;
   scrollbar-color: var(--accent) var(--input);
   scrollbar-width: thin;
-}
-
-.stickers {
-  background: var(--panel)
 }
 
 .search {
   background: var(--input);
   color: var(--text);
   width: 100%;
-  border: 2px solid var(--primary);
-  padding: 5px;
-  font-size: 1.3em;
+  border: 1px solid transparent;
+  padding: 5px 10px;
+  font-size: 1.2em;
+  margin-bottom: 10px;
 }
 
-.page-controls {
-  display: flex;
-  font-size: 1.3em;
-  gap: 10px;
-  justify-content: center;
+.search:focus-visible {
+  border: 1px solid var(--text);
 }
 
-.page-controls button {
-  font-size: 1.3em;
-  background: var(--primary);
-  cursor: pointer;
-  border: none;
-  color: var(--text);
-  height: 100%;
-  line-height: 0.9em;
-  aspect-ratio: 1/1;
-  display: flex;
-  align-items: center;
-}
-
-.text {
-  text-align: center;
+.infinite-scroll-loading {
   align-self: center;
+  margin: 20px;
 }
 
-.loading {
-  align-items: center
-}
-
-button:disabled {
-  color: red;
+.centered {
+  margin: auto;
 }
 </style>
