@@ -3,9 +3,7 @@
     <button class="remove" @click="remove">
       ✖
     </button>
-    <div class="preview">
-      <img :src="model.full" :alt="model.name">
-    </div>
+    <ImageRetry :url="model.full" :alt="model.name" class="preview" />
     <input
       id="emojis"
       v-model="emojisInput"
@@ -19,6 +17,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick } from 'vue'
+import ImageRetry from '@/components/image-retry.vue'
 import type { Sticker } from '@/types/sticker'
 
 const emit = defineEmits<{
@@ -92,14 +91,6 @@ function handlePaste(event: ClipboardEvent) {
 .preview {
   width: 192px;
   height: 192px;
-  display: flex;
-  align-items: center;
-}
-
-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
 }
 
 input {

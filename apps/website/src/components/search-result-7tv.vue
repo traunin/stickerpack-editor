@@ -1,6 +1,6 @@
 <template>
   <div class="emote">
-    <img :src="emote.preview" :alt="emote.name">
+    <ImageRetry class="image" :url="emote.full" :alt="emote.name" />
     <div class="name">
       {{ trimmed }}
     </div>
@@ -8,6 +8,7 @@
 </template>
 
 <script setup lang="ts">
+import ImageRetry from '@/components/image-retry.vue'
 import { useTrimmedString } from '@/composables/use-trimmed-string'
 import type { Emote } from '@/types/sticker'
 
@@ -15,7 +16,7 @@ const props = defineProps<{
   emote: Emote
 }>()
 
-const { trimmed } = useTrimmedString(props.emote.name, 30)
+const trimmed = useTrimmedString(props.emote.name, 25)
 </script>
 
 <style scoped>
@@ -25,6 +26,8 @@ const { trimmed } = useTrimmedString(props.emote.name, 30)
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  height: 96px;
+  flex-shrink: 0;
 }
 
 .emote:hover {
@@ -37,6 +40,13 @@ const { trimmed } = useTrimmedString(props.emote.name, 30)
 
 .name {
   margin-right: 20px;
-  font-size: 1.1em;
+  font-size: 1em;
+  flex: 1;
+  text-align: right;
+}
+
+.image {
+  width: 96px;
+  height: 96px;
 }
 </style>
