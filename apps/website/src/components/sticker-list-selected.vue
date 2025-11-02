@@ -4,7 +4,6 @@
       v-model="stickers"
       item-key="uuid"
       group="stickers"
-      handle=".drag-handle"
       ghost-class="ghost-item"
       chosen-class="chosen-item"
       drag-class="drag-item"
@@ -87,6 +86,7 @@ function removeSticker(index: number) {
   padding: 5px;
   background: var(--panel);
   border-radius: 5px;
+  cursor: grab;
 }
 
 .drag-handle {
@@ -97,7 +97,6 @@ function removeSticker(index: number) {
   text-align: center;
   color: var(--text);
   background: var(--primary);
-  cursor: grab;
   z-index: 10;
   font-size: 1.2em;
   line-height: 28px;
