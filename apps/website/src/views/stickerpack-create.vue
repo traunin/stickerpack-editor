@@ -43,9 +43,9 @@ import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
 import PackParameters from '@/components/pack-parameters.vue'
 import StickerListSelected from '@/components/sticker-list-selected.vue'
+import { usePackValidation } from '@/composables/use-pack-validation'
 import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
-import { useTgAuthStore } from '@/stores/use-tg-auth'
 import type { Sticker } from '@/types/sticker'
 
 const title = ref<string>('')
@@ -63,7 +63,6 @@ const maxStickers = 50 // 200 is not supported yet
 
 const router = useRouter()
 const createdPack = useCreatedPackStore()
-const authStore = useTgAuthStore()
 
 const uploadPackMutation = useUploadPackMutation()
 
@@ -77,19 +76,7 @@ const loadingMessage = computed(() => {
   return `Processing stickers (${progress.value.done}/${progress.value.total})`
 })
 
-const buttonError = computed(() => {
-  if (!authStore.isLoggedIn)
-    return 'You are not logged in'
-  if (nameError.value)
-    return nameError.value
-  if (titleError.value)
-    return titleError.value
-  if (stickerCount.value === 0)
-    return 'No emotes selected'
-  if (stickerCount.value > maxStickers)
-    return `Too many emotes (max ${maxStickers})`
-  return null
-})
+const buttonError = usePackValidation(nameError, titleError, stickerCount, maxStickers)
 
 function addSticker(sticker: Sticker) {
   if (stickerCount.value < maxStickers) {
