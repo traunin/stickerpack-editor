@@ -27,30 +27,7 @@
       <div class="sticker-search">
         <EmoteSource @sticker-selected="addSticker" />
       </div>
-      <div class="selected-stickers">
-        <draggable
-          v-model="stickers"
-          item-key="uniqueId"
-          group="stickers"
-          handle=".drag-handle"
-          ghost-class="ghost-item"
-          chosen-class="chosen-item"
-          drag-class="drag-item"
-          class="drag-area"
-        >
-          <template #item="{ index }">
-            <div class="sticker-wrapper">
-              <div class="drag-handle">
-                ⋮⋮
-              </div>
-              <StickerCreate
-                v-model="stickers[index]"
-                @remove="removeEmote(index)"
-              />
-            </div>
-          </template>
-        </draggable>
-      </div>
+      <StickerListSelected v-model="stickers" />
     </div>
     <ButtonCreatePack :error="buttonError" @click="createPack" />
   </div>
@@ -59,14 +36,13 @@
 <script setup lang="ts">
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
-import draggable from 'vuedraggable'
 import type { ProgressEvent } from '@/api/stickerpack-upload'
 import ButtonCreatePack from '@/components/button-create-pack.vue'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
 import PackParameters from '@/components/pack-parameters.vue'
-import StickerCreate from '@/components/sticker-create.vue'
+import StickerListSelected from '@/components/sticker-list-selected.vue'
 import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
@@ -119,10 +95,6 @@ function addSticker(sticker: Sticker) {
   if (stickerCount.value < maxStickers) {
     stickers.value.push(sticker)
   }
-}
-
-function removeEmote(index: number) {
-  stickers.value.splice(index, 1)
 }
 
 async function createPack() {
@@ -189,18 +161,6 @@ async function createPack() {
 
 .selected-stickers {
   flex: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: flex-start;
-  align-self: flex-start;
-  min-height: 0;
-  overflow-y: auto;
-  align-self: stretch;
-  background: var(--panel);
-  scrollbar-color: var(--accent) var(--input);
-  scrollbar-width: thin;
-  border-radius: 10px;
 }
 
 .error {
@@ -217,50 +177,5 @@ async function createPack() {
 .v-enter-from,
 .v-leave-to {
   top: -15%;
-}
-
-.drag-area > :first-child::before {
-  content: "Preview";
-  position: absolute;
-  top: 5px;
-  height: 26px;
-  line-height: 26px;
-  padding: 0 6px;
-  background: var(--primary);
-  color: var(--text);
-  z-index: 5;
-  left: 50%;
-  transform: translate(-50%);
-  border-radius: 5px;
-}
-
-.drag-area {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 202px);
-  flex: 1;
-  gap: 10px;
-  margin: 15px;
-  justify-content: center;
-}
-
-.sticker-wrapper {
-  position: relative;
-  padding: 5px;
-  background: var(--panel);
-  border-radius: 5px;
-}
-
-.drag-handle {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  text-align: center;
-  color: var(--text);
-  background: var(--primary);
-  cursor: grab;
-  z-index: 10;
-  font-size: 1.2em;
-  line-height: 28px;
 }
 </style>
