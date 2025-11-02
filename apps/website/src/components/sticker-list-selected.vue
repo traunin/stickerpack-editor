@@ -1,8 +1,8 @@
 <template>
   <div class="selected-stickers">
     <draggable
-      :model-value="stickers"
-      item-key="uniqueId"
+      v-model="stickers"
+      item-key="uuid"
       group="stickers"
       handle=".drag-handle"
       ghost-class="ghost-item"

@@ -36,6 +36,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import SearchResult7TV from '@/components/search-result-7tv.vue'
 import { useScrollTenorSearch } from '@/composables/use-scroll-tenor-search'
+import { createSticker } from '@/types/sticker'
 import type { Emote, Sticker } from '@/types/sticker'
 
 const emit = defineEmits<{
@@ -109,7 +110,7 @@ onBeforeUnmount(() => {
 })
 
 function selectEmote(emote: Emote) {
-  emit('sticker-selected', { ...emote, source: '7tv', emoji_list: ['😀'] })
+  emit('sticker-selected', createSticker(emote, 'tenor'))
 }
 </script>
 
