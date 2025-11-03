@@ -1,11 +1,8 @@
 <template>
-  <Transition>
-    <ErrorMessage
-      v-if="uploadError"
-      :message="uploadError"
-      class="error"
-    />
-  </Transition>
+  <ErrorMessage
+    :error="uploadError"
+    :cleanup-timeout="4000"
+  />
   <ModalProgress
     v-if="isUploading"
     :progress="progress"
@@ -67,7 +64,7 @@ const createdPack = useCreatedPackStore()
 const uploadPackMutation = useUploadPackMutation()
 
 const isUploading = computed(() => uploadPackMutation.isPending.value)
-const uploadError = computed(() => uploadPackMutation.uploadError.value)
+const uploadError = uploadPackMutation.uploadError
 
 const buttonError = usePackValidation(nameError, titleError, stickerCount, maxStickers)
 
@@ -141,21 +138,5 @@ async function createPack() {
 
 .selected-stickers {
   flex: 2;
-}
-
-.error {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-}
-
-.v-enter-active,
-.v-leave-active {
-  transition: top 0.5s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-  top: -15%;
 }
 </style>
