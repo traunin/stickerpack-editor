@@ -8,12 +8,11 @@
   </Transition>
   <ModalProgress
     v-if="isUploading"
-    :message="loadingMessage"
-    :total="progress.total"
-    :progress="progress.done"
+    :progress="progress"
   />
+
   <div class="creation-form">
-    <PackFormSettings
+    <PackParametersForm
       v-model="packParams"
       :sticker-count="stickerCount"
       :max-stickers="maxStickers"
@@ -26,6 +25,7 @@
       </div>
       <StickerListSelected v-model="stickers" />
     </div>
+
     <ButtonCreatePack :error="buttonError" @click="createPack" />
   </div>
 </template>
@@ -38,7 +38,7 @@ import ButtonCreatePack from '@/components/button-create-pack.vue'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
-import PackFormSettings from '@/components/pack-form-settings.vue'
+import PackParametersForm from '@/components/pack-parameters-form.vue'
 import StickerListSelected from '@/components/sticker-list-selected.vue'
 import { usePackValidation } from '@/composables/use-pack-validation'
 import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
@@ -68,13 +68,6 @@ const uploadPackMutation = useUploadPackMutation()
 
 const isUploading = computed(() => uploadPackMutation.isPending.value)
 const uploadError = computed(() => uploadPackMutation.uploadError.value)
-
-const loadingMessage = computed(() => {
-  if (progress.value.total === 0) {
-    return 'Starting pack creation...'
-  }
-  return `Processing stickers (${progress.value.done}/${progress.value.total})`
-})
 
 const buttonError = usePackValidation(nameError, titleError, stickerCount, maxStickers)
 

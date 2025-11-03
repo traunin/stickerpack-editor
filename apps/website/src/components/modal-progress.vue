@@ -6,26 +6,27 @@
         <div v-if="total" class="progress-bar">
           <div
             class="progress"
-            :style="{ width: `${((progress ?? 0) / total) * 100}%` }"
+            :style="{ width: `${((done ?? 0) / total) * 100}%` }"
           />
         </div>
         <LoadingAnimation v-else />
-        <div class="progress-label">
-          {{ progress }} / {{ total }}
-        </div>
       </div>
     </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import type { ProgressEvent } from '@/api/stickerpack-upload'
 import LoadingAnimation from '@/components/loading-animation.vue'
 
-defineProps<{
-  message: string
-  total?: number
-  progress?: number
+const props = defineProps<{
+  progress: ProgressEvent
 }>()
+
+const done = computed(() => props.progress.done)
+const total = computed(() => props.progress.total)
+const message = computed(() => props.progress.message)
 </script>
 
 <style scoped>
@@ -49,6 +50,8 @@ defineProps<{
   gap: 20px;
   padding: 20px;
   background: var(--background);
+  border: 2px solid var(--primary);
+  border-radius: 10px;
   font-size: 1.5em;
   color: var(--text);
 }
@@ -63,6 +66,8 @@ defineProps<{
   background: grey;
   width: 100%;
   height: 30px;
+  overflow: hidden;
+  border-radius: 10px;
   overflow: hidden;
 }
 </style>
