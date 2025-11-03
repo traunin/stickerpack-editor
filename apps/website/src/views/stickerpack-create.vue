@@ -23,23 +23,20 @@
       <StickerListSelected v-model="stickers" />
     </div>
 
-    <ButtonCreatePack :error="buttonError" @click="createPack" />
+    <ButtonCreatePack :error="buttonError" @click="create" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRaw } from 'vue'
-import { useRouter } from 'vue-router'
-import type { ProgressEvent } from '@/api/stickerpack-upload'
+import { computed, ref } from 'vue'
 import ButtonCreatePack from '@/components/button-create-pack.vue'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
 import PackParametersForm from '@/components/pack-parameters-form.vue'
 import StickerListSelected from '@/components/sticker-list-selected.vue'
+import { usePackCreation } from '@/composables/use-pack-creation'
 import { usePackValidation } from '@/composables/use-pack-validation'
-import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
-import { useCreatedPackStore } from '@/stores/use-created-pack'
 import type { PackParameters } from '@/types/pack'
 import type { Sticker } from '@/types/sticker'
 
@@ -53,20 +50,17 @@ const stickers = ref<Sticker[]>([])
 
 const nameError = ref<string | null>(null)
 const titleError = ref<string | null>(null)
-const progress = ref<ProgressEvent>({ done: 0, total: 0 })
-
 const stickerCount = computed(() => stickers.value.length)
-const maxStickers = 50 // 200 is not supported yet
+const maxStickers = 50
 
-const router = useRouter()
-const createdPack = useCreatedPackStore()
+const { progress, isUploading, uploadError, createPack } = usePackCreation()
 
-const uploadPackMutation = useUploadPackMutation()
-
-const isUploading = computed(() => uploadPackMutation.isPending.value)
-const uploadError = uploadPackMutation.uploadError
-
-const buttonError = usePackValidation(nameError, titleError, stickerCount, maxStickers)
+const buttonError = usePackValidation(
+  nameError,
+  titleError,
+  stickerCount,
+  maxStickers,
+)
 
 function addSticker(sticker: Sticker) {
   if (stickerCount.value < maxStickers) {
@@ -74,37 +68,10 @@ function addSticker(sticker: Sticker) {
   }
 }
 
-async function createPack() {
-  if (buttonError.value) {
+async function create() {
+  if (buttonError.value)
     return
-  }
-
-  progress.value = { done: 0, total: stickerCount.value }
-
-  try {
-    const response = await uploadPackMutation.mutateAsync({
-      request: {
-        pack_name: packParams.value.name,
-        title: packParams.value.title,
-        emotes: stickers.value.map(e => toRaw(e)),
-        has_watermark: packParams.value.hasWatermark,
-        is_public: packParams.value.isPublic,
-      },
-      onProgress: (progressEvent: ProgressEvent) => {
-        progress.value = progressEvent
-      },
-    })
-
-    createdPack.createdPack = response.pack
-    router.push({
-      name: 'packCreated',
-      params: { id: response.pack.id },
-    })
-  } catch (error) {
-    console.error(error)
-  } finally {
-    progress.value = { done: 0, total: 0 }
-  }
+  await createPack(packParams.value, stickers.value)
 }
 </script>
 

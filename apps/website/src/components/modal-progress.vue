@@ -21,12 +21,12 @@ import type { ProgressEvent } from '@/api/stickerpack-upload'
 import LoadingAnimation from '@/components/loading-animation.vue'
 
 const props = defineProps<{
-  progress: ProgressEvent
+  progress: ProgressEvent | null
 }>()
 
-const done = computed(() => props.progress.done)
-const total = computed(() => props.progress.total)
-const message = computed(() => props.progress.message)
+const done = computed(() => props.progress?.done ?? 0)
+const total = computed(() => props.progress?.total ?? 0)
+const message = computed(() => props.progress?.message ?? 'Processing')
 </script>
 
 <style scoped>
