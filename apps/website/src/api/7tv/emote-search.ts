@@ -68,5 +68,6 @@ export async function fetchSearchedEmotes(query: string, page = 1, pageSize = 10
       }),
     ),
     pageCount: emotes.pageCount,
+    totalCount: emotes.totalCount,
   }
 }
