@@ -13,11 +13,8 @@
     :progress="progress.done"
   />
   <div class="creation-form">
-    <PackParameters
-      v-model:name="name"
-      v-model:title="title"
-      v-model:watermark="watermark"
-      v-model:is-public="isPublic"
+    <PackFormSettings
+      v-model="packParams"
       :sticker-count="stickerCount"
       :max-stickers="maxStickers"
       @name-error="nameError = $event"
@@ -41,17 +38,20 @@ import ButtonCreatePack from '@/components/button-create-pack.vue'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
-import PackParameters from '@/components/pack-parameters.vue'
+import PackFormSettings from '@/components/pack-form-settings.vue'
 import StickerListSelected from '@/components/sticker-list-selected.vue'
 import { usePackValidation } from '@/composables/use-pack-validation'
 import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
+import type { PackParameters } from '@/types/pack'
 import type { Sticker } from '@/types/sticker'
 
-const title = ref<string>('')
-const name = ref<string>('')
-const watermark = ref<boolean>(true)
-const isPublic = ref<boolean>(true)
+const packParams = ref<PackParameters>({
+  name: '',
+  title: '',
+  hasWatermark: true,
+  isPublic: true,
+})
 const stickers = ref<Sticker[]>([])
 
 const nameError = ref<string | null>(null)
@@ -94,11 +94,11 @@ async function createPack() {
   try {
     const response = await uploadPackMutation.mutateAsync({
       request: {
-        pack_name: name.value,
-        title: title.value,
+        pack_name: packParams.value.name,
+        title: packParams.value.title,
         emotes: stickers.value.map(e => toRaw(e)),
-        has_watermark: watermark.value,
-        is_public: isPublic.value,
+        has_watermark: packParams.value.hasWatermark,
+        is_public: packParams.value.isPublic,
       },
       onProgress: (progressEvent: ProgressEvent) => {
         progress.value = progressEvent

@@ -8,11 +8,11 @@
     <PackTitleInput
       v-model="title"
       class="title"
-      :use-watermark="watermark"
+      :use-watermark="hasWatermark"
       @error="forwardTitleError"
     />
     <div class="watermark">
-      <input id="watermark" v-model="watermark" type="checkbox" checked>
+      <input id="watermark" v-model="hasWatermark" type="checkbox" checked>
       <label for="watermark">Bot name watermark</label>
     </div>
     <div class="public">
@@ -26,7 +26,9 @@
 </template>
 
 <script setup lang="ts">
+import { toRefs } from 'vue'
 import PackNameInput from '@/components/pack-name-input.vue'
+import type { PackParameters } from '@/types/pack'
 import PackTitleInput from './pack-title-input.vue'
 
 defineProps<{
@@ -39,10 +41,8 @@ const emit = defineEmits<{
   (e: 'title-error', value: string | null): void
 }>()
 
-const name = defineModel<string>('name', { default: '' })
-const title = defineModel<string>('title', { default: '' })
-const watermark = defineModel<boolean>('watermark', { default: true })
-const isPublic = defineModel<boolean>('isPublic', { default: true })
+const params = defineModel<PackParameters>({ required: true })
+const { name, title, hasWatermark, isPublic } = toRefs(params.value)
 
 function forwardNameError(e: string | null) {
   emit('name-error', e)
