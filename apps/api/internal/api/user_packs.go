@@ -214,7 +214,7 @@ func (h *CreatePackJobHandler) Handle(
 
 	progress(currentStep, steps, "Processing emotes")
 	stickers, err := h.emotesToStickers(ctx, req.Emotes, 2, func(done, total int) {
-		currentStep := steps - total + done
+		currentStep = steps - total + done
 		progress(currentStep, steps, fmt.Sprintf("Processing emotes (%d/%d)", done, total))
 	})
 	if err != nil {
