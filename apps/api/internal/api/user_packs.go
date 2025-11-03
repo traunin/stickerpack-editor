@@ -95,8 +95,14 @@ type CreatePackJobHandler struct {
 	req *CreatePackRequest
 }
 
-func NewCreatePackJobHandler(cfg *config.Config, req *CreatePackRequest) *CreatePackJobHandler {
-	return &CreatePackJobHandler{cfg: cfg, req: req}
+func NewCreatePackJobHandler(
+	cfg *config.Config,
+	req *CreatePackRequest,
+) *CreatePackJobHandler {
+	return &CreatePackJobHandler{
+		cfg: cfg,
+		req: req,
+	}
 }
 
 func (h *CreatePackJobHandler) GetJobType() string {
@@ -115,7 +121,8 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 
 	jobID, err := jobQueue.Enqueue(handler, r)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to enqueue job: %v", err), http.StatusInternalServerError)
+		msg := fmt.Sprintf("Failed to enqueue job: %v", err)
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 
@@ -172,7 +179,10 @@ func (h *CreatePackJobHandler) emotesToStickers(
 	return stickers, nil
 }
 
-func parseEmote(ctx context.Context, input emote.EmoteInput) (telegram.InputSticker, error) {
+func parseEmote(
+	ctx context.Context,
+	input emote.EmoteInput,
+) (telegram.InputSticker, error) {
 	emote, err := input.ToEmote()
 	if err != nil {
 		return telegram.InputSticker{}, err
@@ -213,10 +223,19 @@ func (h *CreatePackJobHandler) Handle(
 	currentStep := 0
 
 	progress(currentStep, steps, "Processing emotes")
-	stickers, err := h.emotesToStickers(ctx, req.Emotes, 2, func(done, total int) {
-		currentStep = steps - total + done
-		progress(currentStep, steps, fmt.Sprintf("Processing emotes (%d/%d)", done, total))
-	})
+	stickers, err := h.emotesToStickers(
+		ctx,
+		req.Emotes,
+		2,
+		func(done, total int) {
+			currentStep = steps - total + done
+			progress(
+				currentStep,
+				steps,
+				fmt.Sprintf("Processing emotes (%d/%d)", done, total),
+			)
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process emotes: %w", err)
 	}
@@ -379,7 +398,11 @@ func nameExistsHandler(w http.ResponseWriter, r *http.Request, name string) {
 	validName := telegram.ValidPackName(name)
 	exists, err := cfg.DBConn().NameExists(validName)
 	if err != nil {
-		http.Error(w, "Database error: unable to check name", http.StatusInternalServerError)
+		http.Error(
+			w,
+			"Database error: unable to check name",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
