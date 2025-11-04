@@ -6,6 +6,7 @@
       group="stickers"
       ghost-class="ghost-item"
       chosen-class="chosen-item"
+      :handle="handleClass"
       drag-class="drag-item"
       class="drag-area"
     >
@@ -26,11 +27,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import draggable from 'vuedraggable'
 import StickerCreate from '@/components/sticker-create.vue'
+import { useIsDesktop } from '@/composables/use-is-desktop'
 import type { Sticker } from '@/types/sticker'
 
 const stickers = defineModel<Sticker[]>({ required: true })
+const isDesktop = useIsDesktop()
+const handleClass = computed(() => isDesktop.value ? '' : '.drag-handle')
 
 function updateSticker(index: number, value: Sticker) {
   stickers.value[index] = value
@@ -85,7 +90,6 @@ function removeSticker(index: number) {
   padding: 5px;
   background: var(--panel);
   border-radius: 5px;
-  cursor: grab;
 }
 
 .drag-handle {
@@ -99,6 +103,7 @@ function removeSticker(index: number) {
   z-index: 10;
   font-size: 1.2em;
   line-height: 28px;
+  cursor: grab;
 }
 
 @media screen and (min-width: 1000px) {
@@ -109,6 +114,10 @@ function removeSticker(index: number) {
 
   .selected-stickers {
     overflow-y: auto;
+  }
+
+  .sticker-wrapper {
+    cursor: grab;
   }
 }
 </style>
