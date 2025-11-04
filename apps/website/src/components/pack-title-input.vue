@@ -38,26 +38,24 @@ watch(error, (val) => {
 .pack-title-input {
   position: relative;
   display: flex;
+  flex-direction: column;
 }
 
 .icon {
   position: absolute;
   font-size: 1.2em;
-  top: 0;
-  bottom: 0;
+  top: 4px;
   display: flex;
   align-items: center;
   right: 10px;
 }
 
 .error {
-  position: absolute;
-  bottom: -30px;
-  right: 0;
   padding: 5px 10px;
   border: 1px solid red;
   background: var(--background);
   border-radius: 5px;
+  margin-top: 5px
 }
 
 input {
@@ -66,14 +64,22 @@ input {
   color: var(--text);
   border: 1px solid transparent;
   font-size: 1.2em;
-  padding: 5px 10px;
-  border-radius: 10px;
-  padding-right: 40px;
+  font-size: 20px;
+  padding: 7px 10px;
+  padding-right: 50px;
   width: 100%;
   outline: none;
 }
 
 input:focus-visible {
   border: 1px solid var(--text);
+}
+
+@media screen and (min-width: 1000px) {
+  .error {
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+  }
 }
 </style>

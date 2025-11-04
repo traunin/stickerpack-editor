@@ -61,6 +61,7 @@ function forwardTitleError(e: string | null) {
   background: var(--panel);
   padding: 10px;
   border-radius: 10px;
+  flex-direction: column;
 }
 
 .watermark, .public {
@@ -110,14 +111,32 @@ input[type="checkbox"]:active {
 }
 
 label {
-  width: 145px;
+  width: auto;
   padding-left: 10px;
   cursor: pointer;
   user-select: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
 }
 
 .sticker-count {
   font-size: 2em;
   align-self: center;
+  display: none
+}
+
+@media screen and (min-width: 1000px) {
+  .parameters {
+    flex-direction: row;
+  }
+
+  .sticker-count {
+    display: block
+  }
+
+  label {
+    width: 145px;
+  }
 }
 </style>

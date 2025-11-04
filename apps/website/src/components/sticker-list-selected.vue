@@ -49,7 +49,6 @@ function removeSticker(index: number) {
   align-items: flex-start;
   align-self: flex-start;
   min-height: 0;
-  overflow-y: auto;
   align-self: stretch;
   background: var(--panel);
   scrollbar-color: var(--accent) var(--input);
@@ -74,10 +73,10 @@ function removeSticker(index: number) {
 
 .drag-area {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 202px);
+  grid-template-columns: repeat(auto-fill, 154px);
   flex: 1;
   gap: 10px;
-  margin: 15px;
+  margin: 10px;
   justify-content: center;
 }
 
@@ -100,5 +99,16 @@ function removeSticker(index: number) {
   z-index: 10;
   font-size: 1.2em;
   line-height: 28px;
+}
+
+@media screen and (min-width: 1000px) {
+  .drag-area {
+    grid-template-columns: repeat(auto-fill, 202px);
+    margin: 15px;
+  }
+
+  .selected-stickers {
+    overflow-y: auto;
+  }
 }
 </style>

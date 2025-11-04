@@ -11,25 +11,37 @@
   <div class="creation-form">
     <PackParametersForm
       v-model="packParams"
+      class="pack-parameters"
       :sticker-count="stickerCount"
       :max-stickers="maxStickers"
       @name-error="nameError = $event"
       @title-error="titleError = $event"
     />
     <div class="stickers">
-      <div class="sticker-search">
+      <div class="emote-source">
         <EmoteSource @sticker-selected="addSticker" />
       </div>
       <StickerListSelected v-model="stickers" />
     </div>
 
-    <ButtonCreatePack :error="buttonError" @click="create" />
+    <ButtonCreatePack
+      class="create-button"
+      :error="buttonError"
+      @click="create"
+    />
+
+    <EmoteSourceModal
+      :sticker-count="stickerCount"
+      :max-stickers="maxStickers"
+      @sticker-selected="addSticker"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ButtonCreatePack from '@/components/button-create-pack.vue'
+import EmoteSourceModal from '@/components/emote-source-modal.vue'
 import EmoteSource from '@/components/emote-source.vue'
 import ErrorMessage from '@/components/error-message.vue'
 import ModalProgress from '@/components/modal-progress.vue'
@@ -80,10 +92,10 @@ async function create() {
   flex: 1;
   align-self: stretch;
   display: flex;
-  flex-direction: column;
-  min-height: 0;
-  margin: 15px;
-  gap: 15px;
+  flex-direction: column-reverse;
+  margin: 10px;
+  gap: 10px;
+  overflow: scroll;
 }
 
 .stickers {
@@ -91,19 +103,60 @@ async function create() {
   align-self: stretch;
   display: flex;
   align-items: stretch;
-  min-height: 0;
   gap: 15px;
 }
 
-.sticker-search {
-  flex: 1;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  min-height: 0;
+.emote-source {
+  display: none;
 }
 
 .selected-stickers {
   flex: 2;
+  order: 3;
+}
+
+.create-button {
+  order: 0;
+}
+
+.pack-parameters {
+  order: 1;
+}
+
+@media screen and (min-width: 1000px) {
+  .creation-form {
+    flex: 1;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin: 15px;
+    gap: 15px;
+    min-height: 0;
+  }
+
+  .emote-source {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    min-height: 0;
+  }
+
+  .selected-stickers {
+    order: 2;
+  }
+
+  .create-button {
+    order: 3;
+  }
+
+  .pack-parameters {
+    order: 0;
+  }
+
+  .stickers {
+    min-height: 0;
+  }
 }
 </style>

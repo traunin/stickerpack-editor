@@ -6,27 +6,29 @@
       <img :src="authStore.photoURL" alt="" class="profile-picture">
     </div>
     <Transition name="fade">
-      <nav v-if="open">
-        <ul>
-          <li
-            v-for="(route, i) in navbarRoutes"
-            :key="route.path"
-            :class="[{ 'route-last': i === navbarRoutes.length - 1 }, { 'route-first': i === 0 }]"
-            @click="open = false"
-          >
-            <NavbarElement
-              :route="route"
-              orientation="vertical"
-            />
-          </li>
-          <li class="theme-switch">
-            <DropdownThemeButton />
-          </li>
-          <li class="sign-out" @click="open = false">
-            <DropdownLogoutButton />
-          </li>
-        </ul>
-      </nav>
+      <Teleport to="body">
+        <nav v-if="open">
+          <ul>
+            <li
+              v-for="(route, i) in navbarRoutes"
+              :key="route.path"
+              :class="[{ 'route-last': i === navbarRoutes.length - 1 }, { 'route-first': i === 0 }]"
+              @click="open = false"
+            >
+              <NavbarElement
+                :route="route"
+                orientation="vertical"
+              />
+            </li>
+            <li class="theme-switch">
+              <DropdownThemeButton />
+            </li>
+            <li class="sign-out" @click="open = false">
+              <DropdownLogoutButton />
+            </li>
+          </ul>
+        </nav>
+      </Teleport>
     </Transition>
   </div>
 </template>
@@ -79,7 +81,8 @@ nav {
   margin-top: 8px;
   border: var(--border) 2px solid;
   align-items: stretch;
-  z-index: 10;
+  z-index: 60;
+  isolation: unset;
 }
 
 ul {

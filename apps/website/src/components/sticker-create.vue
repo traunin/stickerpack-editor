@@ -89,8 +89,8 @@ function handlePaste(event: ClipboardEvent) {
 }
 
 .preview {
-  width: 192px;
-  height: 192px;
+  width: 144px;
+  height: 144px;
 }
 
 input {
@@ -121,5 +121,12 @@ input:focus-visible {
   cursor: pointer;
   top: 0;
   font-size: 1em;
+}
+
+@media screen and (min-width: 1000px) {
+  .preview {
+    width: 192px;
+    height: 192px;
+  }
 }
 </style>
