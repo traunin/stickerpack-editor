@@ -18,6 +18,9 @@ interface TenorSearchResponse {
 const TENOR_API_KEY = import.meta.env.VITE_TENOR_API_KEY
 
 export async function searchTenor(query: string, pos = '', limit = 10) {
+  if (!query) {
+    return { items: [], next: '' }
+  }
   const url = new URL('https://tenor.googleapis.com/v2/search')
   url.searchParams.set('q', query)
   url.searchParams.set('key', TENOR_API_KEY)
