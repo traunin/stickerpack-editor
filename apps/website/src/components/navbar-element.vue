@@ -20,7 +20,7 @@ defineProps<{
 
 <style scoped>
 .link {
-  padding: 15px;
+  padding: 18px;
   text-decoration: none;
   color: var(--text);
   font-size: 1.1em;
