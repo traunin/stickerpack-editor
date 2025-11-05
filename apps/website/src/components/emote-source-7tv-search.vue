@@ -5,7 +5,7 @@
       class="search"
       placeholder="Search 7TV emotes..."
     >
-    <div ref="scrollContainer" class="searched-emotes">
+    <div ref="scroll-container" class="searched-emotes">
       <LoadingAnimation v-if="isLoading" class="centered" />
       <div v-else-if="total === 0" class="centered">
         No emotes found
@@ -21,15 +21,15 @@
           @click="selectEmote(emote)"
         />
         <LoadingAnimation v-if="isFetchingNextPage" class="infinite-scroll-loading" />
+        <div ref="scroll-trigger" style="height: 1px; flex-shrink: 0;" />
       </template>
-      <div ref="scrollTrigger" style="height: 1px; flex-shrink: 0;" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useDebounce } from '@vueuse/core'
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import SearchResult7TV from '@/components/search-result-7tv.vue'
 import { useScroll7TVSearch } from '@/composables/use-scroll-7tv-search'
@@ -55,12 +55,15 @@ const {
 } = useScroll7TVSearch(debounceQuery, 10)
 
 const loadTriggerOffset = 2000
-const scrollTrigger = ref<HTMLElement | null>(null)
+const scrollTrigger = useTemplateRef('scroll-trigger')
 let observer: IntersectionObserver | null = null
-const scrollContainer = ref<HTMLElement | null>(null)
+const scrollContainer = useTemplateRef('scroll-container')
 
-onMounted(async () => {
-  await nextTick()
+function setupObserver() {
+  if (!scrollTrigger.value || !scrollContainer.value || observer) {
+    return
+  }
+
   observer = new IntersectionObserver(
     (entries) => {
       const target = entries[0]
@@ -72,14 +75,22 @@ onMounted(async () => {
     {
       root: scrollContainer.value,
       rootMargin: `${loadTriggerOffset}px`,
-      // @ts-expect-error scroll-margin was not included in IntersectionObserverInit
-      scrollMargin: `${loadTriggerOffset}px`,
       threshold: 0,
     },
   )
-  if (scrollTrigger.value) {
-    observer.observe(scrollTrigger.value)
+
+  observer.observe(scrollTrigger.value)
+}
+
+const stopWatch = watch([scrollTrigger, scrollContainer], () => {
+  if (scrollTrigger.value && scrollContainer.value) {
+    setupObserver()
+    stopWatch()
   }
+})
+
+onMounted(() => {
+  setupObserver()
 })
 
 function checkAndLoadMore() {

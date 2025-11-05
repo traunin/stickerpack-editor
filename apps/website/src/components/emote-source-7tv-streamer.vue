@@ -1,29 +1,29 @@
 <template>
   <div class="user-emotes">
-    <LoadingAnimation v-if="isLoading" />
-    <div v-else-if="total === 0" class="results">
+    <LoadingAnimation v-if="isLoading" class="centered" />
+    <div v-else-if="total === 0" class="centered">
       No emotes found
     </div>
-    <div v-else-if="isError" class="results">
+    <div v-else-if="isError" class="centered">
       {{ error }}
     </div>
-    <div v-else ref="scrollContainer" class="results packs">
+    <div v-else ref="scroll-container" class="results packs">
       <SearchResult7TV
         v-for="emote in emotes"
         :key="emote.id"
         :emote="emote"
         @click="selectEmote(emote)"
       />
-      <div v-if="isFetchingNextPage" class="results loading">
+      <div v-if="isFetchingNextPage" class="results centered">
         <LoadingAnimation />
       </div>
+      <div ref="scroll-trigger" style="height: 1px; flex-shrink: 0;" />
     </div>
-    <div ref="scrollTrigger" style="height: 1px; flex-shrink: 0;" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import SearchResult7TV from '@/components/search-result-7tv.vue'
 import { useScroll7TVUserEmotes } from '@/composables/use-scroll-7tv-user-emotes'
@@ -51,13 +51,15 @@ const {
 } = useScroll7TVUserEmotes(props.streamer.id, 20)
 
 const loadTriggerOffset = 2000
-const scrollTrigger = ref<HTMLElement | null>(null)
+const scrollTrigger = useTemplateRef('scroll-trigger')
 let observer: IntersectionObserver | null = null
-const scrollContainer = ref<HTMLElement | null>(null)
+const scrollContainer = useTemplateRef('scroll-container')
 
-onMounted(async () => {
-  await nextTick()
-  console.log(scrollContainer.value)
+function setupObserver() {
+  if (!scrollTrigger.value || !scrollContainer.value || observer) {
+    return
+  }
+
   observer = new IntersectionObserver(
     (entries) => {
       const target = entries[0]
@@ -69,14 +71,22 @@ onMounted(async () => {
     {
       root: scrollContainer.value,
       rootMargin: `${loadTriggerOffset}px`,
-      // @ts-expect-error scroll-margin was not included in IntersectionObserverInit
-      scrollMargin: `${loadTriggerOffset}px`,
       threshold: 0,
     },
   )
-  if (scrollTrigger.value) {
-    observer.observe(scrollTrigger.value)
+
+  observer.observe(scrollTrigger.value)
+}
+
+const stopWatch = watch([scrollTrigger, scrollContainer], () => {
+  if (scrollTrigger.value && scrollContainer.value) {
+    setupObserver()
+    stopWatch()
   }
+})
+
+onMounted(() => {
+  setupObserver()
 })
 
 function checkAndLoadMore() {
@@ -128,5 +138,9 @@ function selectEmote(emote: Emote) {
   overflow-y: auto;
   scrollbar-color: var(--accent) var(--input);
   scrollbar-width: thin;
+}
+
+.centered {
+  margin: auto;
 }
 </style>
