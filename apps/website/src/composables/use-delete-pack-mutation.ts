@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { ref } from 'vue'
 import { deletePack } from '@/api/pack-delete'
 import type { PacksResponse } from '@/api/packs'
+import { useErrorPopup } from './use-error-popup'
 
 export function useDeletePackMutation() {
   const queryClient = useQueryClient()
-  const deletionError = ref<string>('')
+  const deletionError = useErrorPopup()
 
   const mutation = useMutation({
     mutationFn: deletePack,
@@ -44,13 +44,10 @@ export function useDeletePackMutation() {
         },
       )
 
-      deletionError.value = ''
+      deletionError.clear()
     },
     onError: (error) => {
-      deletionError.value = error.message
-      setTimeout(() => {
-        deletionError.value = ''
-      }, 4000)
+      deletionError.show(error)
     },
   })
 

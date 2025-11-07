@@ -1,13 +1,10 @@
 <template>
   <div class="user-packs">
     <ModalLoading v-if="isDeleting" message="The stickerpack is deleting" />
-    <Transition>
-      <ErrorMessage
-        v-if="deletionError"
-        :message="deletionError"
-        class="error"
-      />
-    </Transition>
+    <ErrorMessage
+      :error="deletionError"
+      :cleanup-timeout="4000"
+    />
     <div v-if="!authStore.isLoggedIn" class="unauthorized">
       Log in to see your packs
     </div>
@@ -68,7 +65,7 @@ const authStore = useTgAuthStore()
 const deletePackMutation = useDeletePackMutation()
 
 const isDeleting = computed(() => deletePackMutation.isPending.value)
-const deletionError = computed(() => deletePackMutation.deletionError.value)
+const deletionError = computed(() => deletePackMutation.deletionError)
 
 function confirmDelete(name: string) {
   deletedPackName.value = name
