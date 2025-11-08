@@ -86,6 +86,7 @@ const stopWatch = watch([scrollTrigger, scrollContainer], () => {
   if (scrollTrigger.value && scrollContainer.value) {
     setupObserver()
     stopWatch()
+    checkAndLoadMore()
   }
 })
 
