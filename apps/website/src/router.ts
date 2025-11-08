@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import SharedIcon from '@/assets/icons/shared.svg'
+import UserIcon from '@/assets/icons/user.svg'
 import type { RouteRecordRaw } from 'vue-router'
 
 export const routes: RouteRecordRaw[] = [
@@ -7,13 +9,13 @@ export const routes: RouteRecordRaw[] = [
     alias: '/user',
     name: 'User packs',
     component: () => import('@/views/user-packs.vue'),
-    meta: { inNavbar: true },
+    meta: { inNavbar: true, icon: UserIcon },
   },
   {
     path: '/shared',
     name: 'Shared packs',
     component: () => import('@/views/shared-packs.vue'),
-    meta: { inNavbar: true },
+    meta: { inNavbar: true, icon: SharedIcon },
   },
   {
     path: '/create',

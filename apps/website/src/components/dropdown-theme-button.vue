@@ -35,7 +35,7 @@ const toggleDark = useToggle(isDark)
   height: 30px;
   border-radius: 50%;
   cursor: pointer;
-  margin: 5px 7px 5px 3px;
+  margin: 5px 11px 5px 3px;
   background: center url("@/assets/icons/sun.svg") white no-repeat;
   background-size: 20px 20px;
 }

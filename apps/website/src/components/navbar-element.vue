@@ -5,17 +5,23 @@
     active-class="active"
     draggable="false"
   >
+    <component :is="route.meta?.icon" v-if="showIcon" class="logo" />
     {{ route.name }}
   </RouterLink>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 
-defineProps<{
+const props = defineProps<{
   route: RouteRecordRaw
   orientation?: 'horizontal' | 'vertical'
 }>()
+
+const showIcon = computed(
+  () => props.route.meta?.icon && props.orientation === 'vertical',
+)
 </script>
 
 <style scoped>
@@ -35,6 +41,7 @@ defineProps<{
 .vertical {
   border: none;
   justify-content: flex-start;
+  padding: 12px;
 }
 
 .link:hover {
@@ -47,5 +54,12 @@ defineProps<{
 
 .active:hover {
   border-bottom-color: var(--text);
+}
+
+.logo {
+  width: 20px;
+  height: 20px;
+  color: var(--text);
+  margin-right: 16px;
 }
 </style>
