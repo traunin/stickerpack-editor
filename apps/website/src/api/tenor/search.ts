@@ -37,12 +37,17 @@ export async function searchTenor(query: string, pos = '', limit = 10) {
   const items = json.results ?? []
 
   return {
-    items: items.map((e): Emote => ({
-      id: e.id,
-      name: e.title || e.content_description,
-      preview: e.media_formats.tinygif?.url ?? e.media_formats.nanogif?.url ?? '',
-      full: e.media_formats.gif?.url ?? e.media_formats.mediumgif?.url ?? '',
-    })),
+    items: items.map((e): Emote => {
+      const fullUrl = e.media_formats.gif?.url ?? e.media_formats.mediumgif?.url ?? ''
+      const id = fullUrl ? new URL(fullUrl).pathname.slice(1) : ''
+
+      return {
+        id,
+        name: e.title || e.content_description,
+        preview: e.media_formats.tinygif?.url ?? e.media_formats.nanogif?.url ?? '',
+        full: fullUrl,
+      }
+    }),
     next: json.next ?? '',
   }
 }
