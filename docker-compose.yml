@@ -14,6 +14,32 @@ services:
     restart: unless-stopped
     networks: [internal]
 
+  postgres-backup:
+    image: tiredofit/db-backup
+    container_name: stickerpack-backup
+    volumes:
+      - ./backups:/backup
+    environment:
+      CONTAINER_NAME: stickerpack-backup
+
+      BACKUP_JOB_CONCURRENCY: 1     # Only run one job at a time
+      DEFAULT_CHECKSUM: MD5        # Create a SHA1 checksum
+      DEFAULT_COMPRESSION: GZ     # Compress with GZIP
+      DEFAULT_BACKUP_INTERVAL: 720   # Backup twice a day
+      DEFAULT_BACKUP_BEGIN: 0400      # Start backing up at 4 am
+      DEFAULT_CLEANUP_TIME: 10080    # Cleanup backups after a week
+
+      DB01_TYPE: postgres
+      DB01_HOST: ${DB_HOST}
+      DB01_NAME: ${DB_NAME}
+      DB01_USER: ${DB_USER}
+      DB01_PASS: ${DB_PASSWORD}
+
+    depends_on:
+    - postgres
+    restart: unless-stopped
+    networks: [internal]
+      
   api:
     build:
       context: ./apps/api
