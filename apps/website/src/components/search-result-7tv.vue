@@ -1,6 +1,6 @@
 <template>
   <div class="emote">
-    <ImageRetry class="image" :url="emote.full" :alt="emote.name" />
+    <ImageRetry class="image" :url="emote.preview" :alt="emote.name" />
     <div class="name">
       {{ trimmed }}
     </div>
