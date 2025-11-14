@@ -93,9 +93,9 @@ async function create() {
   align-self: stretch;
   display: flex;
   flex-direction: column-reverse;
-  margin: 10px;
+  padding: 10px;
   gap: 10px;
-  overflow: scroll;
+  overflow: auto;
 }
 
 .stickers {
