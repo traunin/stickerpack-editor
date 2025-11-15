@@ -1,7 +1,7 @@
 <template>
   <div class="stickerpack-preview">
     <div class="title">
-      {{ trimmedTitle }}
+      {{ stickerpack.title }}
     </div>
     <div class="preview">
       <LoadingAnimation v-if="isLoading" />
@@ -30,12 +30,10 @@
 <script setup lang="ts">
 import LoadingAnimation from '@/components/loading-animation.vue'
 import { useThumbnail } from '@/composables/use-thumbnail'
-import { useTrimmedString } from '@/composables/use-trimmed-string'
 import type { PackResponse } from '@/types/pack'
 
 const props = defineProps<{ stickerpack: PackResponse }>()
 
-const trimmedTitle = useTrimmedString(props.stickerpack.title, 21)
 const tgLink = `https://t.me/addstickers/${props.stickerpack.name}`
 
 const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack.thumbnail_id)
@@ -81,6 +79,9 @@ const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack
   font-size: 1em;
   text-align: center;
   width: 100%;
+  text-wrap: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tg-link {

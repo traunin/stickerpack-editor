@@ -96,6 +96,7 @@ function onSourceSelect(source: string, user?: User7TV) {
   flex-direction: column;
   height: 100%;
   flex: 1;
+  width: 100%;
 }
 
 button {
