@@ -76,7 +76,7 @@ func NewQueue(workers int) *Queue {
 		cancel:     cancel,
 	}
 
-	for i := 0; i < workers; i++ {
+	for i := range workers {
 		q.wg.Add(1)
 		go q.worker(i)
 	}
