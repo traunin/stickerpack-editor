@@ -278,7 +278,7 @@ func requestURL(method string) string {
 func isValidPackName(name string) bool {
 	// English letters and digits, underscores
 	// <= 64 characters
-	// no consequtive underscores
+	// no consecutive underscores
 	re := regexp.MustCompile(`(?i)^[a-z][a-z0-9_]*$`)
 	return len(name) <= 64 &&
 		re.MatchString(name) &&
