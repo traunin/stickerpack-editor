@@ -23,6 +23,9 @@
             <li class="theme-switch">
               <DropdownThemeButton />
             </li>
+            <li class="github-link">
+              <DropdownGithub />
+            </li>
             <li class="sign-out" @click="open = false">
               <DropdownLogoutButton />
             </li>
@@ -36,6 +39,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import CreateLink from '@/components/create-link.vue'
+import DropdownGithub from '@/components/dropdown-github.vue'
 import DropdownLogoutButton from '@/components/dropdown-logout-button.vue'
 import DropdownThemeButton from '@/components/dropdown-theme-button.vue'
 import NavbarElement from '@/components/navbar-element.vue'
@@ -109,6 +113,11 @@ li {
 }
 
 .sign-out {
+  border-radius: 10px;
+}
+
+.github-link {
+  margin-bottom: 10px;
   border-radius: 10px;
 }
 

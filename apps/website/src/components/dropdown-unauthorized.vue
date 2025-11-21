@@ -6,6 +6,9 @@
         <li>
           <DropdownThemeButton />
         </li>
+        <li class="github-link">
+          <DropdownGithub />
+        </li>
       </ul>
     </Transition>
   </div>
@@ -14,6 +17,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MenuIcon from '@/assets/icons/burger.svg'
+import DropdownGithub from './dropdown-github.vue'
 import DropdownThemeButton from './dropdown-theme-button.vue'
 
 const open = ref(false)
@@ -56,6 +60,10 @@ ul {
 li {
   display: flex;
   cursor: pointer;
+}
+
+.github-link {
+  border-radius: 10px;
 }
 
 li:first-child {

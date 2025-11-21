@@ -11,6 +11,9 @@
         <li>
           <DropdownThemeButton />
         </li>
+        <li class="github-link">
+          <DropdownGithub />
+        </li>
         <li>
           <DropdownLogoutButton />
         </li>
@@ -25,6 +28,7 @@ import CreateLink from '@/components/create-link.vue'
 import DropdownLogoutButton from '@/components/dropdown-logout-button.vue'
 import DropdownThemeButton from '@/components/dropdown-theme-button.vue'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
+import DropdownGithub from './dropdown-github.vue'
 
 const open = ref(false)
 const authStore = useTgAuthStore()
@@ -77,6 +81,10 @@ ul {
 li {
   display: flex;
   cursor: pointer;
+}
+
+.github-link {
+  border-bottom: 1px solid var(--border);
 }
 
 li:first-child {

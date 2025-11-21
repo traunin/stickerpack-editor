@@ -18,6 +18,9 @@
           <li class="theme-switch">
             <DropdownThemeButton />
           </li>
+          <li class="github-link">
+            <DropdownGithub />
+          </li>
         </ul>
       </nav>
     </Transition>
@@ -30,6 +33,7 @@ import MenuIcon from '@/assets/icons/burger.svg'
 import DropdownThemeButton from '@/components/dropdown-theme-button.vue'
 import NavbarElement from '@/components/navbar-element.vue'
 import { navbarRoutes } from '@/router'
+import DropdownGithub from './dropdown-github.vue'
 
 const open = ref(false)
 </script>
@@ -83,6 +87,10 @@ li {
 
 .theme-switch {
   margin-bottom: 10px;
+  border-radius: 10px;
+}
+
+.github-link {
   border-radius: 10px;
 }
 
