@@ -1,5 +1,5 @@
 <template>
-  <div class="stickerpack-preview">
+  <a class="stickerpack-preview" :href="tgLink" target="_blank">
     <div class="title">
       {{ stickerpack.title }}
     </div>
@@ -20,19 +20,23 @@
         loop
         playsinline
       />
+      <RouterLink v-if="isEditable" :to="`/edit/${stickerpack.id}`" class="edit">
+        <EditIcon class="edit-icon" />
+      </RouterLink>
     </div>
-    <a :href="tgLink" class="tg-link" target="_blank">
-      <img src="@/assets/icons/tglogo.png" alt="Telegram icon" width="32" height="32">
-    </a>
-  </div>
+  </a>
 </template>
 
 <script setup lang="ts">
+import EditIcon from '@/assets/icons/edit.svg'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import { useThumbnail } from '@/composables/use-thumbnail'
 import type { PackResponse } from '@/types/pack'
 
-const props = defineProps<{ stickerpack: PackResponse }>()
+const props = defineProps<{
+  stickerpack: PackResponse
+  isEditable?: boolean
+}>()
 
 const tgLink = `https://t.me/addstickers/${props.stickerpack.name}`
 
@@ -45,13 +49,18 @@ const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack
   flex-direction: column;
   align-items: center;
   color: var(--text);
-  border: 2px solid var(--text);
+  border: 2px solid transparent;
   width: 202px;
   height: 202px;
   position: relative;
   background: var(--panel);
   border-radius: 10px;
   overflow: hidden;
+  text-decoration: none;
+}
+
+.stickerpack-preview:hover {
+  border: 2px solid var(--border-hover);
 }
 
 .error {
@@ -82,13 +91,25 @@ const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack
   text-wrap: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
 }
 
-.tg-link {
+.edit {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  right: 5px;
+  bottom: 5px;
   width: 32px;
   height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--primary);
+  border-radius: 100%
+}
+
+.edit-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text);
 }
 </style>

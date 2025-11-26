@@ -1,10 +1,5 @@
 <template>
   <div class="user-packs">
-    <ModalLoading v-if="isDeleting" message="The stickerpack is deleting" />
-    <ErrorMessage
-      :error="deletionError"
-      :cleanup-timeout="4000"
-    />
     <div v-if="!authStore.isLoggedIn" class="unauthorized">
       Log in to see your packs
     </div>
@@ -26,10 +21,8 @@
         >
           <StickerpackPreview
             :stickerpack="stickerpack"
+            :is-editable="true"
           />
-          <div class="delete" @click="confirmDelete(stickerpack.name)">
-            X
-          </div>
         </div>
         <div v-if="isFetchingNextPage" class="results loading">
           <LoadingAnimation />
@@ -37,56 +30,17 @@
       </div>
       <div ref="scrollTrigger" style="height: 1px;" />
     </div>
-    <ConfirmModal
-      v-if="showConfirm"
-      message="Are you sure you want to delete the pack?"
-      @cancel="cancelDelete"
-      @confirm="removePack"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import ConfirmModal from '@/components/confirm-modal.vue'
-import ErrorMessage from '@/components/error-message.vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
-import ModalLoading from '@/components/modal-loading.vue'
 import StickerpackPreview from '@/components/stickerpack-preview.vue'
-import { useDeletePackMutation } from '@/composables/use-delete-pack-mutation'
 import { useScrollUserPacks } from '@/composables/use-scroll-user-packs'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
 
-const showConfirm = ref(false)
-const deletedPackName = ref('')
-
 const authStore = useTgAuthStore()
-
-const deletePackMutation = useDeletePackMutation()
-
-const isDeleting = computed(() => deletePackMutation.isPending.value)
-const deletionError = computed(() => deletePackMutation.deletionError)
-
-function confirmDelete(name: string) {
-  deletedPackName.value = name
-  showConfirm.value = true
-}
-
-function cancelDelete() {
-  showConfirm.value = false
-  deletedPackName.value = ''
-}
-
-async function removePack() {
-  try {
-    await deletePackMutation.mutateAsync(deletedPackName.value)
-  } catch (error) {
-    console.error(error)
-  } finally {
-    showConfirm.value = false
-    deletedPackName.value = ''
-  }
-}
 
 const {
   packs,
