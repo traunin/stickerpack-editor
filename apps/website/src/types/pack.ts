@@ -1,4 +1,4 @@
-export interface PackResponse {
+export interface PackPreview {
   id: number
   title: string
   name: string

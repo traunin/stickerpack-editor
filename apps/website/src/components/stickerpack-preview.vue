@@ -31,10 +31,10 @@
 import EditIcon from '@/assets/icons/edit.svg'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import { useThumbnail } from '@/composables/use-thumbnail'
-import type { PackResponse } from '@/types/pack'
+import type { PackPreview } from '@/types/pack'
 
 const props = defineProps<{
-  stickerpack: PackResponse
+  stickerpack: PackPreview
   isEditable?: boolean
 }>()
 

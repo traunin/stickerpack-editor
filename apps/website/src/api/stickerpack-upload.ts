@@ -1,4 +1,4 @@
-import type { PackResponse } from '@/types/pack'
+import type { PackPreview } from '@/types/pack'
 import type { Sticker } from '@/types/sticker'
 import { API_URL } from './config'
 
@@ -12,7 +12,7 @@ export interface StickerpackRequest {
 
 export interface CreatePackResponse {
   pack_url: string
-  pack: PackResponse
+  pack: PackPreview
 }
 
 export interface ProgressEvent {

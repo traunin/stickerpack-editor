@@ -1,8 +1,8 @@
 import { API_URL } from '@/api/config'
-import type { PackResponse } from '@/types/pack'
+import type { PackPreview } from '@/types/pack'
 
 export interface PacksResponse {
-  packs: PackResponse[]
+  packs: PackPreview[]
   total: number
 }
 
