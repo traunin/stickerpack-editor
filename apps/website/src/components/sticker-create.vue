@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import Graphemer from 'graphemer'
+import { splitEmojis } from '@/api/emoji'
 import ImageRetry from '@/components/image-retry.vue'
 import type { Sticker } from '@/types/sticker'
 
@@ -29,12 +29,6 @@ const emit = defineEmits<{
 }>()
 
 const model = defineModel<Sticker>({ required: true })
-const splitter = new Graphemer()
-
-function splitEmojis(text: string): string[] {
-  return splitter.splitGraphemes(text)
-    .filter(s => /[\p{Extended_Pictographic}\p{Emoji_Component}]/u.test(s))
-}
 
 function handleInput(event: Event) {
   const target = event.target as HTMLInputElement
