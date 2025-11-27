@@ -109,6 +109,8 @@ func userPackHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodDelete:
 		deletePackHandler(w, r, name)
+	case http.MethodGet:
+		getPackHandler(w, r, name)
 	case http.MethodHead:
 		nameExistsHandler(w, r, name)
 	default:

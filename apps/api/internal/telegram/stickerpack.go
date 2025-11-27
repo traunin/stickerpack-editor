@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,8 +13,15 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/retrier"
+)
+
+var (
+	httpClient   = &http.Client{Timeout: 15 * time.Second}
+	fetchRetires = 3
 )
 
 type InputSticker struct {
@@ -268,6 +276,49 @@ func (pack *StickerPack) UpdateThumbnailID() error {
 
 	pack.thumbnailID = fileID
 	return nil
+}
+
+func (pack *StickerPack) Fetch(ctx context.Context) (*StickerSet, error) {
+	// this is not good, but adding a dependency just for this is overkill
+	url := requestURL(fmt.Sprintf("getStickerSet?name=%s", pack.name))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating request: %w", err)
+	}
+	params := &retrier.RetryParams{
+		Request: req,
+		Client:  httpClient,
+		Retries: fetchRetires,
+	}
+	resp, err := retrier.RequestWithCallback(ctx, params, fetchCallback)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return parseFetchResponse(resp.Body)
+}
+
+func fetchCallback(resp *http.Response) error {
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	default:
+		return fmt.Errorf(
+			"tg request for fetch pack status code %d", resp.StatusCode,
+		)
+	}
+}
+
+func parseFetchResponse(r io.Reader) (*StickerSet, error) {
+	var set GetStickerSetResponse
+
+	if err := json.NewDecoder(r).Decode(&set); err != nil {
+		errMsg := fmt.Errorf("failed to decode set Fetch response: %w", err)
+		fmt.Printf("%v\n", errMsg)
+		return nil, errMsg
+	}
+	return &set.Result, nil
 }
 
 func requestURL(method string) string {

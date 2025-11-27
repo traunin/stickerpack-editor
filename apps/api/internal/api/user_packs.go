@@ -22,6 +22,11 @@ type DeletePackResponse struct {
 	Success bool `json:"success"`
 }
 
+type StickerSetResponse struct {
+    telegram.StickerSet
+    IsPublic bool `json:"is_public"`
+}
+
 type CreatePackRequest struct {
 	UserID       int64              `json:"-"`
 	PackName     string             `json:"pack_name"`
@@ -81,6 +86,53 @@ func deletePackHandler(w http.ResponseWriter, r *http.Request, name string) {
 	}
 
 	json.NewEncoder(w).Encode(DeletePackResponse{Success: true})
+}
+
+func getPackHandler(w http.ResponseWriter, r *http.Request, name string) {
+    userID, err := UserIDFromContext(r)
+    if err != nil {
+        http.Error(w, "Failed to parse user id", http.StatusInternalServerError)
+        return
+    }
+
+    db := config.Load().DBConn()
+    owned, err := db.IsPackOwner(name, userID)
+    if !owned || err != nil {
+        http.Error(w, "Can't confirm pack ownership", http.StatusUnauthorized)
+        return
+    }
+
+    pack, err := telegram.NewStickerPack(
+        userID,
+        telegram.WithValidName(name),
+    )
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    set, err := pack.Fetch(r.Context())
+    if err != nil {
+        http.Error(
+            w,
+            fmt.Sprintf("Failed to fetch stickerpack: %v", err),
+            http.StatusBadGateway,
+        )
+        return
+    }
+
+    isPublic, err := db.IsPackPublic(name)
+    if err != nil {
+        http.Error(w, "Failed to query publicity", http.StatusInternalServerError)
+        return
+    }
+	
+    resp := StickerSetResponse{
+        StickerSet: *set,
+        IsPublic:   isPublic,
+    }
+
+    json.NewEncoder(w).Encode(resp)
 }
 
 func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string {
