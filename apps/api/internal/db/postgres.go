@@ -36,6 +36,8 @@ const (
 	nameExistsQuery = `SELECT EXISTS(SELECT 1 FROM stickerpacks WHERE name=$1)`
 	packOwnedQuery  = `
 	SELECT EXISTS (SELECT 1 FROM stickerpacks WHERE name=$1 AND user_id=$2)`
+	packPublicQuery  = `
+	SELECT is_public FROM stickerpacks WHERE name=$1`
 	deletePackQuery = `
 	DELETE FROM stickerpacks WHERE name=$1 AND user_id=$2 RETURNING id`
 )
@@ -220,6 +222,13 @@ func (p *Postgres) IsPackOwner(name string, userID int64) (bool, error) {
 	err := p.db.QueryRow(packOwnedQuery, name, userID).Scan(&owned)
 	return owned, err
 }
+
+func (p *Postgres) IsPackPublic(name string) (bool, error) {
+	var public bool
+	err := p.db.QueryRow(packPublicQuery, name).Scan(&public)
+	return public, err
+}
+
 
 func (p *Postgres) DeletePack(name string, userID int64) error {
 	var deletedID int64
