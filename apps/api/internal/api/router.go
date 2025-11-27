@@ -15,7 +15,7 @@ const (
 	userPacksRoute   = "/user/packs"
 	userPackRoute    = "/user/packs/"
 	sessionRoute     = "/session"
-	thumbnailRoute   = "/thumbnail"
+	mediaRoute       = "/media"
 	jobStatusRoute   = "/job/"
 	queueStatusRoute = "/queue"
 )
@@ -24,7 +24,7 @@ var noAuthRoutes = []NoAuthRoute{
 	{Path: baseRoute + sessionRoute, Method: http.MethodPost, PrefixMatch: false},
 	{Path: baseRoute + publicPacksRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: baseRoute + userPackRoute, Method: http.MethodHead, PrefixMatch: true},
-	{Path: baseRoute + thumbnailRoute, Method: http.MethodGet, PrefixMatch: false},
+	{Path: baseRoute + mediaRoute, Method: http.MethodGet, PrefixMatch: false},
 	// {Path: baseRoute + jobStatusRoute, Method: http.MethodGet, PrefixMatch: true},
 	{Path: baseRoute + queueStatusRoute, Method: http.MethodGet, PrefixMatch: false},
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
@@ -58,7 +58,7 @@ func withCORS(h http.Handler) http.Handler {
 
 func withContentTypeJSON(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasSuffix(r.URL.Path, thumbnailRoute) &&
+		if !strings.HasSuffix(r.URL.Path, mediaRoute) &&
 			!strings.HasPrefix(r.URL.Path, baseRoute+jobStatusRoute) {
 			w.Header().Set("Content-Type", "application/json")
 		}
@@ -77,7 +77,7 @@ func SetupHandler() http.Handler {
 	api.HandleFunc(publicPacksRoute, publicPacksHandler)
 	api.HandleFunc(userPackRoute, userPackHandler)
 	api.HandleFunc(userPacksRoute, userPacksHandler)
-	api.HandleFunc(thumbnailRoute, thumbnailHandler)
+	api.HandleFunc(mediaRoute, mediaHandler)
 	api.HandleFunc(jobStatusRoute, jobStatusHandler)
 	api.HandleFunc(queueStatusRoute, queueStatsHandler)
 

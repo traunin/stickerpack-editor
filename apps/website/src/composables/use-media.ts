@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/vue-query'
-import { fetchThumbnail } from '@/api/thumbnail'
+import { fetchMedia } from '@/api/media'
 
-export function useThumbnail(thumbnailId: string) {
+export function useMedia(fileId: string, retries = 3) {
   return useQuery({
-    queryKey: ['thumbnail', thumbnailId],
-    queryFn: () => fetchThumbnail(thumbnailId),
+    queryKey: ['media', fileId],
+    queryFn: () => fetchMedia(fileId),
+    retry: retries,
     staleTime: 60 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,

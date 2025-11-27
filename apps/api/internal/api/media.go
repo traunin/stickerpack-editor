@@ -23,10 +23,10 @@ const (
 )
 
 var (
-	thumbnailRetries = config.Load().DownloadRetries()
-	httpClient       = &http.Client{Timeout: 15 * time.Second}
-	fileInfoCache    = cache.New(55*time.Minute, 20*time.Minute)
-	detectionLocks   sync.Map
+	mediaRetries   = config.Load().DownloadRetries()
+	httpClient     = &http.Client{Timeout: 15 * time.Second}
+	fileInfoCache  = cache.New(55*time.Minute, 20*time.Minute)
+	detectionLocks sync.Map
 )
 
 type CachedFileInfo struct {
@@ -35,16 +35,16 @@ type CachedFileInfo struct {
 }
 
 type StreamContext struct {
-	Writer      http.ResponseWriter
-	Data        []byte
-	ThumbnailID string
-	FileURL     string
+	Writer  http.ResponseWriter
+	Data    []byte
+	FileID  string
+	FileURL string
 }
 
 type FileStreamRequest struct {
-	Writer      http.ResponseWriter
-	FileInfo    *CachedFileInfo
-	ThumbnailID string
+	Writer   http.ResponseWriter
+	FileInfo *CachedFileInfo
+	FileID   string
 }
 
 type DetectedStreamContext struct {
@@ -63,31 +63,31 @@ type GetFileResponse struct {
 	} `json:"result"`
 }
 
-func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
+func mediaHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Load()
 	ctx := r.Context()
 
-	thumbnailID, err := extractThumbnailID(r)
+	fileID, err := extractFileID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	fileInfo, err := getCachedOrFetchFileInfo(ctx, cfg, thumbnailID)
+	fileInfo, err := getCachedOrFetchFileInfo(ctx, cfg, fileID)
 	if err != nil {
-		log.Printf("Error fetching file info for %s: %v\n", thumbnailID, err)
+		log.Printf("Error fetching file info for %s: %v\n", fileID, err)
 		http.Error(w, "failed getting a download link", http.StatusBadGateway)
 		return
 	}
 
 	req := FileStreamRequest{
-		Writer:      w,
-		FileInfo:    fileInfo,
-		ThumbnailID: thumbnailID,
+		Writer:   w,
+		FileInfo: fileInfo,
+		FileID:   fileID,
 	}
 	if err := streamFileAndMaybeDetect(ctx, req); err != nil {
 		if !isClientDisconnect(err) {
-			log.Printf("Error streaming file %s: %v\n", thumbnailID, err)
+			log.Printf("Error streaming file %s: %v\n", fileID, err)
 		}
 		return
 	}
@@ -96,9 +96,9 @@ func thumbnailHandler(w http.ResponseWriter, r *http.Request) {
 func getCachedOrFetchFileInfo(
 	ctx context.Context,
 	cfg *config.Config,
-	thumbnailID string,
+	fileID string,
 ) (*CachedFileInfo, error) {
-	if info, found := fileInfoCache.Get(thumbnailID); found {
+	if info, found := fileInfoCache.Get(fileID); found {
 		return info.(*CachedFileInfo), nil
 	}
 
@@ -106,7 +106,7 @@ func getCachedOrFetchFileInfo(
 		return nil, err
 	}
 
-	fileURL, err := downloadLink(ctx, cfg, thumbnailID)
+	fileURL, err := downloadLink(ctx, cfg, fileID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,18 +115,18 @@ func getCachedOrFetchFileInfo(
 		URL:         fileURL,
 		ContentType: "",
 	}
-	fileInfoCache.Set(thumbnailID, info, cache.DefaultExpiration)
+	fileInfoCache.Set(fileID, info, cache.DefaultExpiration)
 
 	return info, nil
 }
 
-func extractThumbnailID(r *http.Request) (string, error) {
+func extractFileID(r *http.Request) (string, error) {
 	query := r.URL.Query()
-	thumbnailID := query.Get("thumbnail_id")
-	if thumbnailID == "" {
-		return "", fmt.Errorf("missing thumbnail_id")
+	fileID := query.Get("file_id")
+	if fileID == "" {
+		return "", fmt.Errorf("missing file_id")
 	}
-	return thumbnailID, nil
+	return fileID, nil
 }
 
 func streamFileAndMaybeDetect(ctx context.Context, req FileStreamRequest) error {
@@ -142,10 +142,10 @@ func streamFileAndMaybeDetect(ctx context.Context, req FileStreamRequest) error 
 
 	// detect content type
 	streamCtx := StreamContext{
-		Writer:      req.Writer,
-		Data:        data,
-		ThumbnailID: req.ThumbnailID,
-		FileURL:     req.FileInfo.URL,
+		Writer:  req.Writer,
+		Data:    data,
+		FileID:  req.FileID,
+		FileURL: req.FileInfo.URL,
 	}
 	return detectAndStream(streamCtx)
 }
@@ -169,17 +169,17 @@ func streamWithCachedType(
 }
 
 func detectAndStream(ctx StreamContext) error {
-	mu := acquireDetectionLock(ctx.ThumbnailID)
+	mu := acquireDetectionLock(ctx.FileID)
 	mu.Lock()
 	defer mu.Unlock()
-	defer releaseDetectionLock(ctx.ThumbnailID)
+	defer releaseDetectionLock(ctx.FileID)
 
-	if contentType := getCachedContentType(ctx.ThumbnailID); contentType != "" {
+	if contentType := getCachedContentType(ctx.FileID); contentType != "" {
 		return streamWithCachedType(ctx.Writer, ctx.Data, contentType)
 	}
 
 	contentType := detectContentTypeFromStream(ctx.Data)
-	updateCachedContentType(ctx.ThumbnailID, ctx.FileURL, contentType)
+	updateCachedContentType(ctx.FileID, ctx.FileURL, contentType)
 
 	streamCtx := DetectedStreamContext{
 		Writer:      ctx.Writer,
@@ -189,18 +189,18 @@ func detectAndStream(ctx StreamContext) error {
 	return streamWithDetectedType(streamCtx)
 }
 
-func acquireDetectionLock(thumbnailID string) *sync.Mutex {
-	lockKey := "detect:" + thumbnailID
+func acquireDetectionLock(fileID string) *sync.Mutex {
+	lockKey := "detect:" + fileID
 	actualLock, _ := detectionLocks.LoadOrStore(lockKey, &sync.Mutex{})
 	return actualLock.(*sync.Mutex)
 }
 
-func releaseDetectionLock(thumbnailID string) {
-	detectionLocks.Delete("detect:" + thumbnailID)
+func releaseDetectionLock(fileID string) {
+	detectionLocks.Delete("detect:" + fileID)
 }
 
-func getCachedContentType(thumbnailID string) string {
-	if cached, found := fileInfoCache.Get(thumbnailID); found {
+func getCachedContentType(fileID string) string {
+	if cached, found := fileInfoCache.Get(fileID); found {
 		info := cached.(*CachedFileInfo)
 		return info.ContentType
 	}
@@ -212,12 +212,12 @@ func detectContentTypeFromStream(data []byte) string {
 	return contentType
 }
 
-func updateCachedContentType(thumbnailID, fileURL, contentType string) {
+func updateCachedContentType(fileID, fileURL, contentType string) {
 	updatedInfo := &CachedFileInfo{
 		URL:         fileURL,
 		ContentType: contentType,
 	}
-	fileInfoCache.Set(thumbnailID, updatedInfo, cache.DefaultExpiration)
+	fileInfoCache.Set(fileID, updatedInfo, cache.DefaultExpiration)
 }
 
 func streamWithDetectedType(ctx DetectedStreamContext) error {
@@ -253,7 +253,7 @@ func downloadFile(ctx context.Context, fileURL string) ([]byte, error) {
 	params := &retrier.RetryParams{
 		Request: req,
 		Client:  httpClient,
-		Retries: thumbnailRetries,
+		Retries: mediaRetries,
 	}
 	return retrier.Download(params)
 }
@@ -261,7 +261,7 @@ func downloadFile(ctx context.Context, fileURL string) ([]byte, error) {
 func downloadLink(
 	ctx context.Context,
 	cfg *config.Config,
-	thumbnailID string,
+	fileID string,
 ) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
@@ -271,7 +271,7 @@ func downloadLink(
 	reqURL := fmt.Sprintf(
 		"https://api.telegram.org/bot%s/getFile?file_id=%s",
 		botToken,
-		url.QueryEscape(thumbnailID),
+		url.QueryEscape(fileID),
 	)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
@@ -280,7 +280,7 @@ func downloadLink(
 	params := &retrier.RetryParams{
 		Request: req,
 		Client:  httpClient,
-		Retries: thumbnailRetries,
+		Retries: mediaRetries,
 	}
 	resp, err := retrier.RequestWithCallback(ctx, params, downloadLinkCallback)
 	if err != nil {
