@@ -246,12 +246,16 @@ func isClientDisconnect(err error) bool {
 }
 
 func downloadFile(ctx context.Context, fileURL string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating request: %w", err)
+	}
 	params := &retrier.RetryParams{
-		URL:     fileURL,
+		Request: req,
 		Client:  httpClient,
 		Retries: thumbnailRetries,
 	}
-	return retrier.Download(ctx, params)
+	return retrier.Download(params)
 }
 
 func downloadLink(
@@ -269,8 +273,12 @@ func downloadLink(
 		botToken,
 		url.QueryEscape(thumbnailID),
 	)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed creating request: %w", err)
+	}
 	params := &retrier.RetryParams{
-		URL:     reqURL,
+		Request: req,
 		Client:  httpClient,
 		Retries: thumbnailRetries,
 	}

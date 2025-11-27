@@ -47,13 +47,18 @@ func (e *sevenTVEmote) Download(ctx context.Context) (EmoteData, error) {
 	}
 
 	extension := extensions[isAnimated]
+	url := fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.id, extension)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return EmoteData{}, fmt.Errorf("failed creating request: %w", err)
+	}
 	retryParams := &retrier.RetryParams{
-		URL:     fmt.Sprintf("https://cdn.7tv.app/emote/%s/4x%s", e.id, extension),
+		Request: req,
 		Client:  httpClient7TV,
 		Retries: retries7TV,
 	}
 
-	data, err := retrier.Download(ctx, retryParams)
+	data, err := retrier.Download(retryParams)
 	if err != nil {
 		return EmoteData{}, fmt.Errorf("failed to download emote %s: %w", e.id, err)
 	}
@@ -83,8 +88,13 @@ func (e *sevenTVEmote) String() string {
 func (e *sevenTVEmote) isAnimated(ctx context.Context) (bool, error) {
 	// Currently using an old api, if it's deprecated...
 	// We'll have to deal with GraphQL...
+	url := fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed creating request: %w", err)
+	}
 	retryParams := &retrier.RetryParams{
-		URL:     fmt.Sprintf("https://7tv.io/v3/emotes/%s", e.id),
+		Request: req,
 		Client:  httpClient7TV,
 		Retries: retries7TV,
 	}

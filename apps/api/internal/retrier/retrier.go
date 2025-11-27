@@ -15,24 +15,26 @@ const (
 )
 
 type RetryParams struct {
-	URL     string
+	Request *http.Request
 	Client  *http.Client
 	Retries int
 }
 
 type RetryCallback func(*http.Response) error
 
-func Download(ctx context.Context, params *RetryParams) ([]byte, error) {
+func Download(params *RetryParams) ([]byte, error) {
 	client := params.Client
-	url := params.URL
+	request := params.Request
 	retries := params.Retries
+	ctx := request.Context()
+	url := request.URL
 
 	for attempt := 1; attempt <= retries; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("context cancelled: %w", err)
 		}
 
-		data, err := attemptDownload(ctx, url, client)
+		data, err := attemptDownload(request, client)
 		if err == nil {
 			return data, nil
 		}
@@ -54,23 +56,17 @@ func Download(ctx context.Context, params *RetryParams) ([]byte, error) {
 }
 
 func attemptDownload(
-	ctx context.Context,
-	url string,
+	request *http.Request,
 	client *http.Client,
 ) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := client.Do(req)
+	resp, err := client.Do(request)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if statusCode := resp.StatusCode; statusCode != http.StatusOK {
-		err := fmt.Errorf("download failed: %s returned %d", url, statusCode)
+		err := fmt.Errorf("download failed: %s returned %d", request.URL, statusCode)
 		return nil, err
 	}
 
@@ -87,15 +83,16 @@ func RequestWithCallback(
 	callback RetryCallback,
 ) (*http.Response, error) {
 	client := params.Client
-	url := params.URL
+	request := params.Request
 	retries := params.Retries
+	url := request.URL
 
 	for attempt := 1; attempt <= retries; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("context cancelled: %w", err)
 		}
 
-		resp, err := attemptRequest(ctx, url, client)
+		resp, err := attemptRequest(request, client)
 		if err != nil {
 			log.Printf(
 				"request of %s failed (%d/%d): %v", url, attempt, retries, err,
@@ -124,15 +121,9 @@ func RequestWithCallback(
 }
 
 func attemptRequest(
-	ctx context.Context,
-	url string,
+	req *http.Request,
 	client *http.Client,
 ) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
 	return client.Do(req)
 }
 

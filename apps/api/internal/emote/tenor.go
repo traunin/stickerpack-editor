@@ -24,12 +24,17 @@ type tenorEmote struct {
 }
 
 func (e *tenorEmote) Download(ctx context.Context) (EmoteData, error) {
+	url := fmt.Sprintf("https://media.tenor.com/%s", e.id)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return EmoteData{}, fmt.Errorf("failed creating request: %w", err)
+	}
 	retryParams := &retrier.RetryParams{
-		URL:     fmt.Sprintf("https://media.tenor.com/%s", e.id),
+		Request: req,
 		Client:  httpClientTenor,
 		Retries: retriesTenor,
 	}
-	data, err := retrier.Download(ctx, retryParams)
+	data, err := retrier.Download(retryParams)
 	if err != nil {
 		return EmoteData{}, fmt.Errorf(
 			"failed to download emote %s: %w", e.id, err,
