@@ -1,49 +1,46 @@
 <template>
   <div class="image-retry">
     <LoadingAnimation v-if="isLoading" class="loading" />
-    <picture v-else>
-      <img :src="currentURL" :alt="alt">
-    </picture>
+    <div v-else-if="error" class="error">
+      Failed to load
+    </div>
+    <template v-else>
+      <div v-if="data?.isVideo" class="video-container">
+        <video
+          :src="data?.url"
+          :alt="alt"
+          autoplay
+          loop
+          playsinline
+          muted
+        />
+      </div>
+      <picture v-else>
+        <img :src="data?.url" :alt="alt">
+      </picture>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useImage } from '@vueuse/core'
-import { ref, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
+import { useMedia } from '@/composables/use-media'
 
 interface Props {
   url: string
   alt?: string
   retries?: number
-  baseDelay?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   retries: 3,
-  baseDelay: 200,
 })
 
-let retryCount = 0
-const maxRetries = props.retries
-const baseDelay = props.baseDelay
-const currentURL = ref(`${props.url}?r=${retryCount}`)
-
-const { isLoading, error } = useImage(ref({ src: currentURL }))
-
-watch(error, (failed) => {
-  if (failed && retryCount < maxRetries) {
-    const delay = baseDelay * 2 ** retryCount + baseDelay * Math.random()
-    retryCount++
-    setTimeout(() => {
-      currentURL.value = `${props.url}?r=${retryCount}`
-    }, delay)
-  }
-})
+const { data, isLoading, error } = useMedia(props.url, props.retries)
 </script>
 
 <style scoped>
-picture {
+picture, .video-container {
   height: 100%;
   aspect-ratio: 1;
   display: flex;
@@ -51,7 +48,7 @@ picture {
   justify-content: center;
 }
 
-img {
+img, video {
   object-fit: contain;
   width: 100%;
   height: 100%;

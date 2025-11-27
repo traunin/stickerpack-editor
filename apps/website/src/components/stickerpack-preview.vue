@@ -3,34 +3,17 @@
     <div class="title">
       {{ stickerpack.title }}
     </div>
-    <div class="preview">
-      <LoadingAnimation v-if="isLoading" />
-      <div v-else-if="error" class="error">
-        Failed to load
-      </div>
-      <img
-        v-else-if="thumbnailData && !thumbnailData.isVideo"
-        :src="thumbnailData.url"
-        alt="Stickerpack preview"
-      >
-      <video
-        v-else-if="thumbnailData?.isVideo"
-        :src="thumbnailData.url"
-        autoplay
-        loop
-        playsinline
-      />
-      <RouterLink v-if="isEditable" :to="`/edit/${stickerpack.id}`" class="edit">
-        <EditIcon class="edit-icon" />
-      </RouterLink>
-    </div>
+    <ImageRetry class="preview" :url="thumbnailUrl" />
+    <RouterLink v-if="isEditable" :to="`/edit/${stickerpack.name}`" class="edit">
+      <EditIcon class="edit-icon" />
+    </RouterLink>
   </a>
 </template>
 
 <script setup lang="ts">
+import { API_URL } from '@/api/config'
 import EditIcon from '@/assets/icons/edit.svg'
-import LoadingAnimation from '@/components/loading-animation.vue'
-import { useThumbnail } from '@/composables/use-thumbnail'
+import ImageRetry from '@/components/media-retry.vue'
 import type { PackPreview } from '@/types/pack'
 
 const props = defineProps<{
@@ -39,8 +22,7 @@ const props = defineProps<{
 }>()
 
 const tgLink = `https://t.me/addstickers/${props.stickerpack.name}`
-
-const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack.thumbnail_id)
+const thumbnailUrl = `${API_URL}/media?file_id=${props.stickerpack.thumbnail_id}`
 </script>
 
 <style scoped>
@@ -63,23 +45,12 @@ const { data: thumbnailData, isLoading, error } = useThumbnail(props.stickerpack
   border: 2px solid var(--border-hover);
 }
 
-.error {
-  color: red;
-}
-
 .preview {
   width: 160px;
   height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.preview img, video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  margin: 5px;
 }
 
 .title {

@@ -21,7 +21,7 @@
 
 <script setup lang="ts">
 import { splitEmojis } from '@/api/emoji'
-import ImageRetry from '@/components/image-retry.vue'
+import ImageRetry from '@/components/media-retry.vue'
 import type { Sticker } from '@/types/sticker'
 
 const emit = defineEmits<{

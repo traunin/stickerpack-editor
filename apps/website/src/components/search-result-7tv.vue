@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import ImageRetry from '@/components/image-retry.vue'
+import ImageRetry from '@/components/media-retry.vue'
 import type { Emote } from '@/types/sticker'
 
 defineProps<{
