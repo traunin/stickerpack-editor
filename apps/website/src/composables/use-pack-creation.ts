@@ -1,6 +1,5 @@
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
-import type { ProgressEvent } from '@/api/stickerpack-upload'
 import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
 import type { PackParameters } from '@/types/pack'
@@ -17,10 +16,18 @@ export function usePackCreation() {
   const uploadError = uploadPackMutation.uploadError
 
   async function createPack(packParams: PackParameters, stickers: Sticker[]) {
+    if (packParams.name === '' || packParams.name === null) {
+      uploadError.show('Pack name is required')
+      return
+    }
+    if (packParams.hasWatermark === undefined) {
+      uploadError.show('Watermark info is required')
+      return
+    }
     try {
       const response = await uploadPackMutation.mutateAsync({
         request: {
-          pack_name: packParams.name,
+          pack_name: packParams.name ?? '',
           title: packParams.title,
           emotes: stickers.map(e => toRaw(e)),
           has_watermark: packParams.hasWatermark,
