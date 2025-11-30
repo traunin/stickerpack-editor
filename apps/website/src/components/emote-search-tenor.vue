@@ -34,7 +34,7 @@
 import { useDebounce } from '@vueuse/core'
 import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
-import SearchResult7TV from '@/components/search-result-7tv.vue'
+import SearchResult7TV from '@/components/search-result-emote.vue'
 import { useScrollTenorSearch } from '@/composables/use-scroll-tenor-search'
 import { createSticker } from '@/types/sticker'
 import type { Emote, Sticker } from '@/types/sticker'
