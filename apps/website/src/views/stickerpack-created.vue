@@ -3,6 +3,7 @@
     <StickerpackPreview
       v-if="createdPack"
       :stickerpack="createdPack"
+      :is-editable="true"
     />
     <div v-else>
       <div class="create-link">
