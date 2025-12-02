@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ProgressEvent } from '@/api/stickerpack-upload'
+import type { ProgressEvent } from '@/api/job'
 import LoadingAnimation from '@/components/loading-animation.vue'
 
 const props = defineProps<{
