@@ -36,10 +36,13 @@ const (
 	nameExistsQuery = `SELECT EXISTS(SELECT 1 FROM stickerpacks WHERE name=$1)`
 	packOwnedQuery  = `
 	SELECT EXISTS (SELECT 1 FROM stickerpacks WHERE name=$1 AND user_id=$2)`
-	packPublicQuery  = `
+	packPublicQuery = `
 	SELECT is_public FROM stickerpacks WHERE name=$1`
 	deletePackQuery = `
 	DELETE FROM stickerpacks WHERE name=$1 AND user_id=$2 RETURNING id`
+	getPackQuery = `
+	SELECT id, title, name, thumbnail_id FROM stickerpacks
+	WHERE name = $1`
 )
 
 type Postgres struct {
@@ -229,9 +232,18 @@ func (p *Postgres) IsPackPublic(name string) (bool, error) {
 	return public, err
 }
 
-
 func (p *Postgres) DeletePack(name string, userID int64) error {
 	var deletedID int64
 	err := p.db.QueryRow(deletePackQuery, name, userID).Scan(&deletedID)
 	return err
+}
+
+func (p *Postgres) GetPack(name string) (*PackResponse, error) {
+	var resp PackResponse
+	err := p.db.QueryRow(getPackQuery, name).
+		Scan(&resp.ID, &resp.Title, &resp.Name, &resp.ThumbnailID)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
