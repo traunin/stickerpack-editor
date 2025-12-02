@@ -5,7 +5,7 @@ export interface Emote {
   full: string
 }
 
-export type Source = '7tv' | 'tenor'
+export type Source = '7tv' | 'tenor' | 'telegram'
 
 export interface Sticker extends Emote {
   uuid: string
