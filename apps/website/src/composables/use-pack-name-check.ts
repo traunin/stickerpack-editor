@@ -7,6 +7,9 @@ function validateName(name: string): string | null {
   if (name.length === 0) {
     return 'Name is empty'
   }
+  if (!/^[a-z]/i.test(name)) {
+    return 'Name must start with a letter'
+  }
   if (!/^\w+$/.test(name)) {
     return 'Only letters, numbers, and underscores allowed'
   }
