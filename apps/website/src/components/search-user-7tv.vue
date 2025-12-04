@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { useDebounce } from '@vueuse/core'
+import { refDebounced } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import SearchResultUser7TV from '@/components/search-result-user-7tv.vue'
@@ -40,7 +40,7 @@ const emit = defineEmits<{
 }>()
 
 const query = ref('')
-const debouncedQuery = useDebounce(query, 200)
+const debouncedQuery = refDebounced(query, 200)
 
 const pageSize = 5
 const { users, error, loading } = use7tvUserSearch(debouncedQuery, pageSize)

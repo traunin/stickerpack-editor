@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { useDebounce } from '@vueuse/core'
+import { refDebounced } from '@vueuse/core'
 import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 import LoadingAnimation from '@/components/loading-animation.vue'
 import SearchResult7TV from '@/components/search-result-emote.vue'
@@ -44,7 +44,7 @@ const emit = defineEmits<{
 }>()
 
 const query = ref('')
-const debounceQuery = useDebounce(query, 300)
+const debounceQuery = refDebounced(query, 300)
 
 const {
   emotes,

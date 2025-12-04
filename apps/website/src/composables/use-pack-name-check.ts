@@ -1,4 +1,4 @@
-import { useDebounce } from '@vueuse/core'
+import { refDebounced } from '@vueuse/core'
 import { computed, ref, unref, watch } from 'vue'
 import { API_URL } from '@/api/config'
 import type { MaybeRef } from 'vue'
@@ -45,7 +45,7 @@ export function usePackNameCheck(name: MaybeRef<string>) {
     return unwrapped.value
   })
 
-  const debounced = useDebounce(validated, 300)
+  const debounced = refDebounced(validated, 300)
 
   watch(debounced, async (newName) => {
     if (!newName)
