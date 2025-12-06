@@ -38,7 +38,7 @@ func withCORS(h http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", domain)
 		w.Header().Set(
 			"Access-Control-Allow-Methods",
-			"GET, POST, PUT, DELETE, OPTIONS, HEAD",
+			"GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD",
 		)
 		w.Header().Set(
 			"Access-Control-Allow-Headers",
@@ -111,6 +111,8 @@ func userPackHandler(w http.ResponseWriter, r *http.Request) {
 		deletePackHandler(w, r, name)
 	case http.MethodGet:
 		getPackHandler(w, r, name)
+	case http.MethodPatch:
+		editPackHandler(w, r, name)
 	case http.MethodHead:
 		nameExistsHandler(w, r, name)
 	default:

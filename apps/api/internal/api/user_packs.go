@@ -23,8 +23,8 @@ type DeletePackResponse struct {
 }
 
 type StickerSetResponse struct {
-    telegram.StickerSet
-    IsPublic bool `json:"is_public"`
+	telegram.StickerSet
+	IsPublic bool `json:"is_public"`
 }
 
 type CreatePackRequest struct {
@@ -38,6 +38,27 @@ type CreatePackRequest struct {
 
 type CreatePackResponse struct {
 	PackURL string `json:"pack_url"`
+}
+
+type EditPackRequest struct {
+	UserID          int64                   `json:"-"`
+	PackName        string                  `json:"-"`
+	UpdatedTitle    *string                 `json:"updated_title,omitempty"`
+	UpdatedIsPublic *bool                   `json:"updated_is_public,omitempty"`
+	DeletedStickers []string                `json:"deleted_stickers"`
+	AddedStickers   []emote.EmoteInput      `json:"added_stickers"`
+	EmojiUpdates    []StickerEmojiUpdate    `json:"emoji_updates"`
+	PositionUpdates []StickerPositionUpdate `json:"position_updates"`
+}
+
+type StickerEmojiUpdate struct {
+	ID     string   `json:"id"`
+	Emojis []string `json:"emojis"`
+}
+
+type StickerPositionUpdate struct {
+	ID       string `json:"id"`
+	Position int    `json:"position"`
 }
 
 var format = map[bool]string{
@@ -89,50 +110,50 @@ func deletePackHandler(w http.ResponseWriter, r *http.Request, name string) {
 }
 
 func getPackHandler(w http.ResponseWriter, r *http.Request, name string) {
-    userID, err := UserIDFromContext(r)
-    if err != nil {
-        http.Error(w, "Failed to parse user id", http.StatusInternalServerError)
-        return
-    }
+	userID, err := UserIDFromContext(r)
+	if err != nil {
+		http.Error(w, "Failed to parse user id", http.StatusInternalServerError)
+		return
+	}
 
-    db := config.Load().DBConn()
-    owned, err := db.IsPackOwner(name, userID)
-    if !owned || err != nil {
-        http.Error(w, "Can't confirm pack ownership", http.StatusUnauthorized)
-        return
-    }
+	db := config.Load().DBConn()
+	owned, err := db.IsPackOwner(name, userID)
+	if !owned || err != nil {
+		http.Error(w, "Can't confirm pack ownership", http.StatusUnauthorized)
+		return
+	}
 
-    pack, err := telegram.NewStickerPack(
-        userID,
-        telegram.WithValidName(name),
-    )
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+	pack, err := telegram.NewStickerPack(
+		userID,
+		telegram.WithValidName(name),
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    set, err := pack.Fetch(r.Context())
-    if err != nil {
-        http.Error(
-            w,
-            fmt.Sprintf("Failed to fetch stickerpack: %v", err),
-            http.StatusBadGateway,
-        )
-        return
-    }
+	set, err := pack.Fetch(r.Context())
+	if err != nil {
+		http.Error(
+			w,
+			fmt.Sprintf("Failed to fetch stickerpack: %v", err),
+			http.StatusBadGateway,
+		)
+		return
+	}
 
-    isPublic, err := db.IsPackPublic(name)
-    if err != nil {
-        http.Error(w, "Failed to query publicity", http.StatusInternalServerError)
-        return
-    }
-	
-    resp := StickerSetResponse{
-        StickerSet: *set,
-        IsPublic:   isPublic,
-    }
+	isPublic, err := db.IsPackPublic(name)
+	if err != nil {
+		http.Error(w, "Failed to query publicity", http.StatusInternalServerError)
+		return
+	}
 
-    json.NewEncoder(w).Encode(resp)
+	resp := StickerSetResponse{
+		StickerSet: *set,
+		IsPublic:   isPublic,
+	}
+
+	json.NewEncoder(w).Encode(resp)
 }
 
 func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string {
@@ -187,7 +208,7 @@ func createPackHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (h *CreatePackJobHandler) emotesToStickers(
+func emotesToStickers(
 	ctx context.Context,
 	emotes []emote.EmoteInput,
 	limit int,
@@ -275,7 +296,7 @@ func (h *CreatePackJobHandler) Handle(
 	currentStep := 0
 
 	progress(currentStep, steps, "Processing emotes")
-	stickers, err := h.emotesToStickers(
+	stickers, err := emotesToStickers(
 		ctx,
 		req.Emotes,
 		2,
@@ -463,4 +484,174 @@ func nameExistsHandler(w http.ResponseWriter, r *http.Request, name string) {
 	} else {
 		http.NotFound(w, r) // 404 name available
 	}
+}
+
+type EditPackJobHandler struct {
+	cfg *config.Config
+	req *EditPackRequest
+}
+
+func NewEditPackJobHandler(
+	cfg *config.Config,
+	req *EditPackRequest,
+) *EditPackJobHandler {
+	return &EditPackJobHandler{
+		cfg: cfg,
+		req: req,
+	}
+}
+
+func (h *EditPackJobHandler) GetJobType() string {
+	return "edit_stickerpack"
+}
+
+func editPackHandler(w http.ResponseWriter, r *http.Request, name string) {
+	req, mr := parseEditPackRequest(w, r, name)
+	if mr != nil {
+		http.Error(w, mr.Error(), mr.status)
+		return
+	}
+
+	cfg := config.Load()
+	handler := NewEditPackJobHandler(cfg, req)
+
+	jobID, err := jobQueue.Enqueue(handler, r)
+	if err != nil {
+		msg := fmt.Sprintf("Failed to enqueue job: %v", err)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"job_id": jobID,
+		"status": "queued",
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(response)
+}
+
+func parseEditPackRequest(
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+) (
+	req *EditPackRequest,
+	mr *malformedRequest,
+) {
+	err := DecodeJSONBody(w, r, &req)
+	if err != nil {
+		if errors.As(err, &mr) {
+			return
+		}
+		log.Printf("decoding error in parseEditPacksRequest: %v", err)
+		mr = &malformedRequest{
+			status: http.StatusInternalServerError,
+			msg:    "unable to decode request",
+		}
+		return
+	}
+
+	userID, ctxErr := UserIDFromContext(r)
+	if ctxErr != nil {
+		mr = &malformedRequest{
+			status: http.StatusBadRequest,
+			msg:    ctxErr.Error(),
+		}
+		return
+	}
+	req.UserID = userID
+	req.PackName = name
+	return
+}
+
+func (h *EditPackJobHandler) Handle(
+	ctx context.Context,
+	r *http.Request,
+	progress func(done, total int, message string),
+) (any, error) {
+	req := h.req
+	name := req.PackName
+
+	steps := len(req.AddedStickers) * 2
+	currentStep := 0
+
+	progress(currentStep, steps, "Processing emotes")
+	stickers, err := emotesToStickers(
+		ctx,
+		req.AddedStickers,
+		2,
+		func(done, total int) {
+			currentStep = steps - total + done
+			progress(
+				currentStep,
+				steps,
+				fmt.Sprintf("Processing emotes (%d/%d)", done, total),
+			)
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process emotes: %w", err)
+	}
+
+	pack, err := telegram.NewStickerPack(
+		req.UserID,
+		telegram.WithValidName(name),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to bundle stickerpack: %w", err)
+	}
+
+	dbConn := config.Load().DBConn()
+	if req.UpdatedIsPublic != nil {
+		err := dbConn.UpdateIsPublic(name, *req.UpdatedIsPublic)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update isPublic: %w", err)
+		}
+	}
+
+	for _, sticker := range stickers {
+		err := pack.AddSticker(sticker)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add a sticker: %w", err)
+		}
+		currentStep++
+		progress(
+			currentStep,
+			steps,
+			fmt.Sprintf("Adding emotes (%d/%d)", currentStep, steps),
+		)
+	}
+
+	for _, deleted := range req.DeletedStickers {
+		err := telegram.DeleteSticker(deleted)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete a sticker: %w", err)
+		}
+	}
+
+	for _, update := range req.EmojiUpdates {
+		err := telegram.SetStickerEmojis(update.ID, update.Emojis)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update emojis: %w", err)
+		}
+	}
+
+	for _, update := range req.PositionUpdates {
+		err := telegram.SetStickerPosition(update.ID, update.Position)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update emojis: %w", err)
+		}
+	}
+
+	editedPack, err := dbConn.GetPack(req.PackName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pack from db: %w", err)
+	}
+
+	return struct {
+		Pack *db.PackResponse `json:"pack"`
+	}{
+		Pack: editedPack,
+	}, nil
 }
