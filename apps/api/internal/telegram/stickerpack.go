@@ -278,6 +278,153 @@ func (pack *StickerPack) UpdateThumbnailID() error {
 	return nil
 }
 
+func (pack *StickerPack) AddSticker(sticker InputSticker) error {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	IDstring := strconv.FormatInt(pack.userID, 10)
+	if err := writer.WriteField("user_id", IDstring); err != nil {
+		return fmt.Errorf("failed to write user_id: %w", err)
+	}
+	if err := writer.WriteField("name", pack.name); err != nil {
+		return fmt.Errorf("failed to write name: %w", err)
+	}
+
+	inputSticker := attachSticker{
+		Sticker:   "attach://sticker0",
+		EmojiList: sticker.EmojiList,
+		Format:    sticker.Format,
+		Keywords:  sticker.Keywords,
+	}
+
+	jsonSticker, err := json.Marshal(inputSticker)
+	if err != nil {
+		return fmt.Errorf("failed to convert to JSON: %w", err)
+	}
+	writer.WriteField("sticker", string(jsonSticker))
+
+	extension := ".png"
+	if sticker.Format == "video" {
+		extension = ".webm"
+	}
+	part, err := writer.CreateFormFile(
+		"sticker0",
+		fmt.Sprintf("sticker0%s", extension),
+	)
+	if err != nil {
+		return fmt.Errorf("failed writing to request: %w", err)
+	}
+	if _, err := part.Write(sticker.Sticker); err != nil {
+		return fmt.Errorf("failed attaching image: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to close writer: %w", err)
+	}
+
+	reqURL := requestURL("addStickerToSet")
+	resp, err := http.Post(reqURL, writer.FormDataContentType(), &buf)
+	if err != nil {
+		return fmt.Errorf("addStickerToSet failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API error: %s", string(body))
+	}
+
+	return nil
+}
+
+func (pack *StickerPack) SetTitle(title string) error {
+	data := url.Values{}
+	data.Set("name", pack.name)
+	data.Set("title", title)
+
+	reqURL := requestURL("setStickerSetTitle")
+
+	resp, err := http.PostForm(reqURL, data)
+	if err != nil {
+		return fmt.Errorf("setStickerSetTitle failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API error: %s", body)
+	}
+
+	return nil
+}
+
+func SetStickerEmojis(fileID string, emojis []string) error {
+	emojiJSON, err := json.Marshal(emojis)
+	if err != nil {
+		return fmt.Errorf("failed to encode emoji_list: %w", err)
+	}
+
+	data := url.Values{}
+	data.Set("sticker", fileID)
+	data.Set("emoji_list", string(emojiJSON))
+
+	reqURL := requestURL("setStickerEmojiList")
+
+	resp, err := http.PostForm(reqURL, data)
+	if err != nil {
+		return fmt.Errorf("setStickerEmojiList failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API error: %s", body)
+	}
+
+	return nil
+}
+
+func DeleteSticker(fileID string) error {
+	data := url.Values{}
+	data.Set("sticker", fileID)
+
+	reqURL := requestURL("deleteStickerFromSet")
+
+	resp, err := http.PostForm(reqURL, data)
+	if err != nil {
+		return fmt.Errorf("deleteStickerFromSet failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API error: %s", body)
+	}
+
+	return nil
+}
+
+func SetStickerPosition(fileID string, position int) error {
+	data := url.Values{}
+	data.Set("sticker", fileID)
+	data.Set("position", strconv.Itoa(position))
+
+	reqURL := requestURL("setStickerPositionInSet")
+
+	resp, err := http.PostForm(reqURL, data)
+	if err != nil {
+		return fmt.Errorf("setStickerPositionInSet failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API error: %s", body)
+	}
+
+	return nil
+}
+
 func (pack *StickerPack) Fetch(ctx context.Context) (*StickerSet, error) {
 	// this is not good, but adding a dependency just for this is overkill
 	url := requestURL(fmt.Sprintf("getStickerSet?name=%s", pack.name))
