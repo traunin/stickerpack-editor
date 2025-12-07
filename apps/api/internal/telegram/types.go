@@ -19,10 +19,10 @@ type Sticker struct {
 }
 
 type File struct {
-	File_id        string `json:"file_id"`
-	File_unique_id string `json:"file_unique_id"`
-	File_size      int    `json:"file_size,omitempty"`
-	File_path      string `json:"file_path,omitempty"`
+	FileID       string `json:"file_id"`
+	FileUniqueID string `json:"file_unique_id"`
+	FileSize     int    `json:"file_size,omitempty"`
+	FilePath     string `json:"file_path,omitempty"`
 }
 
 type PhotoSize struct {
