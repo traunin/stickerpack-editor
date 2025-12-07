@@ -573,6 +573,13 @@ func (h *EditPackJobHandler) Handle(
 	req := h.req
 	name := req.PackName
 
+	for _, deleted := range req.DeletedStickers {
+		err := telegram.DeleteSticker(deleted)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete a sticker: %w", err)
+		}
+	}
+
 	steps := len(req.AddedStickers) * 2
 	currentStep := 0
 
@@ -621,13 +628,6 @@ func (h *EditPackJobHandler) Handle(
 			steps,
 			fmt.Sprintf("Adding emotes (%d/%d)", currentStep, steps),
 		)
-	}
-
-	for _, deleted := range req.DeletedStickers {
-		err := telegram.DeleteSticker(deleted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to delete a sticker: %w", err)
-		}
 	}
 
 	for _, update := range req.EmojiUpdates {
