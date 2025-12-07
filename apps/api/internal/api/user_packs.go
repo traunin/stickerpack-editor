@@ -565,6 +565,25 @@ func parseEditPackRequest(
 	return
 }
 
+type editProgress struct {
+	current int
+	total   int
+	notify  func(done, total int, message string)
+}
+
+func (p *editProgress) update(message string) {
+	p.current++
+	p.notify(p.current, p.total, message)
+}
+
+func (p *editProgress) setMessage(message string) {
+	p.notify(p.current, p.total, message)
+}
+
+type editResponse struct {
+	Pack *db.PackResponse `json:"pack"`
+}
+
 func (h *EditPackJobHandler) Handle(
 	ctx context.Context,
 	r *http.Request,
@@ -572,35 +591,11 @@ func (h *EditPackJobHandler) Handle(
 ) (any, error) {
 	req := h.req
 	name := req.PackName
-
-	for _, deleted := range req.DeletedStickers {
-		err := telegram.DeleteSticker(deleted)
-		if err != nil {
-			return nil, fmt.Errorf("failed to delete a sticker: %w", err)
-		}
+	prog := &editProgress{
+		current: 0,
+		total:   calculateEditSteps(req),
+		notify:  progress,
 	}
-
-	steps := len(req.AddedStickers) * 2
-	currentStep := 0
-
-	progress(currentStep, steps, "Processing emotes")
-	stickers, err := emotesToStickers(
-		ctx,
-		req.AddedStickers,
-		2,
-		func(done, total int) {
-			currentStep = steps - total + done
-			progress(
-				currentStep,
-				steps,
-				fmt.Sprintf("Processing emotes (%d/%d)", done, total),
-			)
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process emotes: %w", err)
-	}
-
 	pack, err := telegram.NewStickerPack(
 		req.UserID,
 		telegram.WithValidName(name),
@@ -609,49 +604,163 @@ func (h *EditPackJobHandler) Handle(
 		return nil, fmt.Errorf("failed to bundle stickerpack: %w", err)
 	}
 
-	dbConn := config.Load().DBConn()
-	if req.UpdatedIsPublic != nil {
-		err := dbConn.UpdateIsPublic(name, *req.UpdatedIsPublic)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update isPublic: %w", err)
-		}
+	prog.setMessage("Starting pack edit")
+	if err := editDeleteStage(req.DeletedStickers, prog); err != nil {
+		return nil, fmt.Errorf("failed to delete stickers: %w", err)
+	}
+	if err := editEmojiStage(req.EmojiUpdates, prog); err != nil {
+		return nil, fmt.Errorf("failed to update emojis: %w", err)
+	}
+	if err := editUpdateIsPublicStage(req, name, prog); err != nil {
+		return nil, fmt.Errorf("failed to update IsPublic: %w", err)
+	}
+	if err := editUpdateTitleStage(req, pack, prog); err != nil {
+		return nil, fmt.Errorf("failed to update title: %w", err)
+	}
+	if err := editAddStage(ctx, pack, req.AddedStickers, prog); err != nil {
+		return nil, fmt.Errorf("failed to add stickers: %w", err)
+	}
+	if err := editPositionStage(req.PositionUpdates, prog); err != nil {
+		return nil, fmt.Errorf("failed to update positions: %w", err)
 	}
 
-	for _, sticker := range stickers {
-		err := pack.AddSticker(sticker)
-		if err != nil {
-			return nil, fmt.Errorf("failed to add a sticker: %w", err)
-		}
-		currentStep++
-		progress(
-			currentStep,
-			steps,
-			fmt.Sprintf("Adding emotes (%d/%d)", currentStep, steps),
-		)
-	}
-
-	for _, update := range req.EmojiUpdates {
-		err := telegram.SetStickerEmojis(update.ID, update.Emojis)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update emojis: %w", err)
-		}
-	}
-
-	for _, update := range req.PositionUpdates {
-		err := telegram.SetStickerPosition(update.ID, update.Position)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update emojis: %w", err)
-		}
-	}
-
-	editedPack, err := dbConn.GetPack(req.PackName)
+	editedPack, err := config.Load().DBConn().GetPack(req.PackName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pack from db: %w", err)
 	}
 
-	return struct {
-		Pack *db.PackResponse `json:"pack"`
-	}{
-		Pack: editedPack,
-	}, nil
+	return editResponse{Pack: editedPack}, nil
+}
+
+func calculateEditSteps(req *EditPackRequest) int {
+	totalSteps := 0
+	totalSteps += len(req.DeletedStickers)
+	totalSteps += len(req.AddedStickers) * 2 // process and add
+	totalSteps += len(req.EmojiUpdates)
+	totalSteps += len(req.PositionUpdates)
+	if req.UpdatedTitle != nil {
+		totalSteps++
+	}
+	if req.UpdatedIsPublic != nil {
+		totalSteps++
+	}
+	return totalSteps
+}
+
+func editDeleteStage(deletedIDs []string, prog *editProgress) error {
+	deletedCount := len(deletedIDs)
+	for i, deleted := range deletedIDs {
+		if err := telegram.DeleteSticker(deleted); err != nil {
+			return err
+		}
+		prog.update(fmt.Sprintf("Deleting stickers (%d/%d)", i+1, deletedCount))
+	}
+	return nil
+}
+
+func editProcessStage(
+	ctx context.Context,
+	addedStickers []emote.EmoteInput,
+	prog *editProgress,
+) ([]telegram.InputSticker, error) {
+	if len(addedStickers) == 0 {
+		return nil, nil
+	}
+
+	prog.setMessage("Processing emotes")
+
+	stickers, err := emotesToStickers(
+		ctx,
+		addedStickers,
+		2,
+		func(done, total int) {
+			prog.current = prog.total - (total * 2) + done
+			prog.notify(
+				prog.current,
+				prog.total,
+				fmt.Sprintf("Processing emotes (%d/%d)", done, total),
+			)
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return stickers, nil
+}
+
+func editUpdateIsPublicStage(
+	req *EditPackRequest,
+	packName string,
+	prog *editProgress,
+) error {
+	if req.UpdatedIsPublic != nil {
+		dbConn := config.Load().DBConn()
+		err := dbConn.UpdateIsPublic(packName, *req.UpdatedIsPublic)
+		if err != nil {
+			return err
+		}
+		prog.update("Updated pack publicity")
+	}
+	return nil
+}
+
+func editUpdateTitleStage(
+	req *EditPackRequest,
+	pack *telegram.StickerPack,
+	prog *editProgress,
+) error {
+	if req.UpdatedTitle != nil {
+		if err := pack.SetTitle(*req.UpdatedTitle); err != nil {
+			return err
+		}
+		prog.update("Updated pack title")
+	}
+	return nil
+}
+
+func editAddStage(
+	ctx context.Context,
+	pack *telegram.StickerPack,
+	addedStickers []emote.EmoteInput,
+	prog *editProgress,
+) error {
+	stickers, err := editProcessStage(ctx, addedStickers, prog)
+	if err != nil {
+		return fmt.Errorf("failed to process emotes: %w", err)
+	}
+	for i, sticker := range stickers {
+		if err := pack.AddSticker(sticker); err != nil {
+			return err
+		}
+		prog.update(fmt.Sprintf("Adding emotes (%d/%d)", i+1, len(stickers)))
+	}
+	return nil
+}
+
+func editEmojiStage(updates []StickerEmojiUpdate, prog *editProgress) error {
+	updateCount := len(updates)
+	for i, update := range updates {
+		err := telegram.SetStickerEmojis(update.ID, update.Emojis)
+		if err != nil {
+			return err
+		}
+		prog.update(fmt.Sprintf("Updating emojis (%d/%d)", i+1, updateCount))
+	}
+	return nil
+}
+
+func editPositionStage(
+	updates []StickerPositionUpdate,
+	prog *editProgress,
+) error {
+	updateCount := len(updates)
+	for i, update := range updates {
+		err := telegram.SetStickerPosition(update.ID, update.Position)
+		if err != nil {
+			return err
+		}
+		prog.update(fmt.Sprintf("Updating positions (%d/%d)", i+1, updateCount))
+	}
+	return nil
 }
