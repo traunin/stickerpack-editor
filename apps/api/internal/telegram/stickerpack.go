@@ -31,6 +31,12 @@ type InputSticker struct {
 	Keywords  []string
 }
 
+type PackPreview struct {
+	Title       string `json:"title"`
+	Name        string `json:"name"`
+	ThumbnailID string `json:"thumbnail_id"`
+}
+
 type StickerPack struct {
 	userID      int64
 	name        string
@@ -241,12 +247,7 @@ func PackInfo(packName string) (*StickerSet, error) {
 	return &result.Result, nil
 }
 
-func PackThumbnailID(packName string) (string, error) {
-	stickerSet, err := PackInfo(packName)
-	if err != nil {
-		return "", err
-	}
-
+func PackThumbnailID(stickerSet *StickerSet) (string, error) {
 	// thumbnail set explicitly
 	if stickerSet.Thumbnail != nil && stickerSet.Thumbnail.FileID != "" {
 		return stickerSet.Thumbnail.FileID, nil
@@ -269,7 +270,11 @@ func PackThumbnailID(packName string) (string, error) {
 }
 
 func (pack *StickerPack) UpdateThumbnailID() error {
-	fileID, err := PackThumbnailID(pack.name)
+	stickerSet, err := PackInfo(pack.name)
+	if err != nil {
+		return err
+	}
+	fileID, err := PackThumbnailID(stickerSet)
 	if err != nil {
 		return err
 	}
@@ -426,8 +431,11 @@ func SetStickerPosition(fileID string, position int) error {
 }
 
 func (pack *StickerPack) Fetch(ctx context.Context) (*StickerSet, error) {
-	// this is not good, but adding a dependency just for this is overkill
-	url := requestURL(fmt.Sprintf("getStickerSet?name=%s", pack.name))
+	return FetchPack(ctx, pack.name)
+}
+
+func FetchPack(ctx context.Context, name string) (*StickerSet, error) {
+	url := requestURL(fmt.Sprintf("getStickerSet?name=%s", name))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating request: %w", err)
@@ -444,6 +452,23 @@ func (pack *StickerPack) Fetch(ctx context.Context) (*StickerSet, error) {
 	defer resp.Body.Close()
 
 	return parseFetchResponse(resp.Body)
+}
+
+func FetchPackPreview(ctx context.Context, name string) (*PackPreview, error) {
+	pack, err := FetchPack(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	thumbnailID, err := PackThumbnailID(pack)
+	if err != nil {
+		return nil, err
+	}
+	return &PackPreview{
+		Title:       pack.Title,
+		Name:        pack.Name,
+		ThumbnailID: thumbnailID,
+	}, nil
 }
 
 func fetchCallback(resp *http.Response) error {

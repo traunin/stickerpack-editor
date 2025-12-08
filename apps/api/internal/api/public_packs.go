@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
 func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
@@ -30,21 +32,41 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := config.Load().DBConn()
-	packs, err := db.PublicStickerpacks(page, pageSize)
+	resp, err := publicPacksPreviews(r.Context(), page, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	json.NewEncoder(w).Encode(resp)
+}
+
+func publicPacksPreviews(
+	ctx context.Context,
+	page,
+	pageSize int,
+) (*GetPacksResponse, error) {
+	db := config.Load().DBConn()
+	packs, err := db.PublicStickerpacks(page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	previews := make([]telegram.PackPreview, len(packs))
+	for i := range packs {
+		preview, err := telegram.FetchPackPreview(ctx, packs[i].Name)
+		if err != nil {
+			return nil, err
+		}
+		previews[i] = *preview
 	}
 
 	total, err := db.PublicPacksCount()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	json.NewEncoder(w).Encode(GetPacksResponse{
-		Packs: packs,
+	return &GetPacksResponse{
+		Packs: previews,
 		Total: total,
-	})
+	}, nil
 }

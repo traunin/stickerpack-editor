@@ -426,7 +426,6 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page_size is not a number", http.StatusBadRequest)
 		return
 	}
-
 	if page < 0 {
 		http.Error(w, "page is less than zero", http.StatusBadRequest)
 		return
@@ -435,30 +434,50 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page_size has to be > 0", http.StatusBadRequest)
 		return
 	}
-
 	userID, ctxErr := UserIDFromContext(r)
 	if ctxErr != nil {
 		http.Error(w, ctxErr.Error(), http.StatusBadRequest)
 		return
 	}
 
+	resp, err := userPacksPreviews(r.Context(), userID, page, pageSize)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(resp)
+}
+
+func userPacksPreviews(
+	ctx context.Context,
+	userID int64,
+	page,
+	pageSize int,
+) (*GetPacksResponse, error) {
 	db := config.Load().DBConn()
 	packs, err := db.UserPacks(userID, page, pageSize)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	total, err := db.UserPacksCount(userID)
+	previews := make([]telegram.PackPreview, len(packs))
+	for i := range packs {
+		preview, err := telegram.FetchPackPreview(ctx, packs[i].Name)
+		if err != nil {
+			return nil, err
+		}
+		previews[i] = *preview
+	}
+
+	total, err := db.PublicPacksCount()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	json.NewEncoder(w).Encode(GetPacksResponse{
-		Packs: packs,
+	return &GetPacksResponse{
+		Packs: previews,
 		Total: total,
-	})
+	}, nil
 }
 
 func nameExistsHandler(w http.ResponseWriter, r *http.Request, name string) {
@@ -581,7 +600,7 @@ func (p *editProgress) setMessage(message string) {
 }
 
 type editResponse struct {
-	Pack *db.PackResponse `json:"pack"`
+	Pack telegram.PackPreview `json:"pack"`
 }
 
 func (h *EditPackJobHandler) Handle(
@@ -624,12 +643,12 @@ func (h *EditPackJobHandler) Handle(
 		return nil, fmt.Errorf("failed to update positions: %w", err)
 	}
 
-	editedPack, err := config.Load().DBConn().GetPack(req.PackName)
+	preview, err := telegram.FetchPackPreview(ctx, req.PackName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get pack from db: %w", err)
+		return nil, fmt.Errorf("failed to fetch edited pack: %w", err)
 	}
 
-	return editResponse{Pack: editedPack}, nil
+	return editResponse{Pack: *preview}, nil
 }
 
 func calculateEditSteps(req *EditPackRequest) int {
