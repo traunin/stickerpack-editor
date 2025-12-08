@@ -19,8 +19,8 @@
     </div>
 
     <input
-      id="streamer"
       v-model="query"
+      name="streamer"
       type="text"
       placeholder="Search 7TV users..."
     >

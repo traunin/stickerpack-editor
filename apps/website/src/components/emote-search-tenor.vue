@@ -2,6 +2,7 @@
   <div class="emote-search">
     <input
       v-model="query"
+      name="tenor-emote-search"
       class="search"
       placeholder="Search Tenor emotes..."
     >

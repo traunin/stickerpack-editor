@@ -2,6 +2,7 @@
   <div class="emote-search">
     <input
       v-model="query"
+      name="7tv-emote-search"
       class="search"
       placeholder="Search 7TV emotes..."
     >
