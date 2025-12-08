@@ -9,7 +9,7 @@
     </button>
     <ImageRetry :url="model.full" :alt="model.name" class="preview" />
     <input
-      id="emojis"
+      :id="`emojis-${model.uuid}`"
       :value="model.emoji_list?.join('') ?? ''"
       type="text"
       placeholder="Enter emojis only..."
