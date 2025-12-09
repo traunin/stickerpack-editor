@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -51,13 +53,19 @@ func publicPacksPreviews(
 		return nil, err
 	}
 
-	previews := make([]telegram.PackPreview, len(packs))
+	previews := make([]telegram.PackPreview, 0, len(packs))
 	for i := range packs {
-		preview, err := telegram.FetchPackPreview(ctx, packs[i].Name)
+		name := packs[i].Name
+		preview, err := telegram.FetchPackPreview(ctx, name)
 		if err != nil {
+			if errors.Is(err, telegram.ErrorPackNotFound) {
+				log.Printf("Deleting pack %s from db", name)
+				config.Load().DBConn().DeleteMissingPack(name)
+				continue
+			}
 			return nil, err
 		}
-		previews[i] = *preview
+		previews = append(previews, *preview)
 	}
 
 	total, err := db.PublicPacksCount()

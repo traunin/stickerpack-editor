@@ -308,12 +308,12 @@ func downloadLink(
 	return fileURL, nil
 }
 
-func downloadLinkCallback(resp *http.Response) error {
+func downloadLinkCallback(resp *http.Response) (bool, error) {
 	switch resp.StatusCode {
 	case http.StatusOK:
-		return nil
+		return false, nil
 	default:
-		return fmt.Errorf(
+		return true,fmt.Errorf(
 			"tg request for download link status code %d", resp.StatusCode,
 		)
 	}

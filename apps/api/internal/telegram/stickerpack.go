@@ -22,6 +22,7 @@ import (
 var (
 	httpClient   = &http.Client{Timeout: 15 * time.Second}
 	fetchRetires = 3
+	ErrorPackNotFound = errors.New("pack was deleted or does not exist")
 )
 
 type InputSticker struct {
@@ -471,12 +472,16 @@ func FetchPackPreview(ctx context.Context, name string) (*PackPreview, error) {
 	}, nil
 }
 
-func fetchCallback(resp *http.Response) error {
+func fetchCallback(resp *http.Response) (bool, error) {
 	switch resp.StatusCode {
 	case http.StatusOK:
-		return nil
+		return false, nil
+	case http.StatusBadRequest:
+		// the description says "STICKERSET_INVALID"
+		// the error messages are very clear, very demure
+		return false, ErrorPackNotFound
 	default:
-		return fmt.Errorf(
+		return true, fmt.Errorf(
 			"tg request for fetch pack status code %d", resp.StatusCode,
 		)
 	}

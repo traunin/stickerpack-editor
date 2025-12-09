@@ -20,7 +20,10 @@ type RetryParams struct {
 	Retries int
 }
 
-type RetryCallback func(*http.Response) error
+// if err is nil, response is returned
+// if err is not nil and retry is true, another attempt is made
+// if err is not nil and retry is false, request fails immediately
+type RetryCallback func(*http.Response) (retry bool, err error)
 
 func Download(params *RetryParams) ([]byte, error) {
 	client := params.Client
@@ -105,9 +108,23 @@ func RequestWithCallback(
 			continue
 		}
 
-		if err := invokeCallback(resp, callback); err == nil {
+		shouldRetry, callbackErr := invokeCallback(resp, callback)
+		
+		if callbackErr == nil {
 			return resp, nil
 		}
+
+		if !shouldRetry {
+			return nil, fmt.Errorf("request failed (no retry): %w", callbackErr)
+		}
+
+		log.Printf(
+			"callback failed for %s (%d/%d): %v",
+			url,
+			attempt,
+			retries,
+			callbackErr,
+		)
 
 		// don't sleep after the last attempt
 		if attempt < retries {
@@ -127,23 +144,26 @@ func attemptRequest(
 	return client.Do(req)
 }
 
-func invokeCallback(resp *http.Response, callback RetryCallback) error {
+func invokeCallback(resp *http.Response, callback RetryCallback) (bool, error) {
+	var shouldRetry bool
 	var callbackErr error
+
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
 				resp.Body.Close()
+				shouldRetry = false
 				callbackErr = fmt.Errorf("callback panicked: %v", r)
 			}
 		}()
-		callbackErr = callback(resp)
+		shouldRetry, callbackErr = callback(resp)
 	}()
 
 	if callbackErr != nil {
 		resp.Body.Close()
 	}
 
-	return callbackErr
+	return shouldRetry, callbackErr
 }
 
 func sleepWithBackoff(ctx context.Context, attempt int) error {

@@ -40,6 +40,8 @@ const (
 	SELECT is_public FROM stickerpacks WHERE name=$1`
 	deletePackQuery = `
 	DELETE FROM stickerpacks WHERE name=$1 AND user_id=$2 RETURNING id`
+	deleteMissingPackQuery = `
+	DELETE FROM stickerpacks WHERE name=$1`
 	updateIsPublicQuery = `
 	UPDATE stickerpacks SET is_public=$2 WHERE name=$1`
 	getPackQuery = `
@@ -236,6 +238,11 @@ func (p *Postgres) IsPackPublic(name string) (bool, error) {
 
 func (p *Postgres) DeletePack(name string, userID int64) error {
 	_, err := p.db.Exec(deletePackQuery, name, userID)
+	return err
+}
+
+func (p *Postgres) DeleteMissingPack(name string) error {
+	_, err := p.db.Exec(deleteMissingPackQuery, name)
 	return err
 }
 

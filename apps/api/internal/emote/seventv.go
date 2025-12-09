@@ -114,16 +114,16 @@ func (e *sevenTVEmote) isAnimated(ctx context.Context) (bool, error) {
 	return info.Animated, nil
 }
 
-func animatedRespCallback(resp *http.Response) error {
+func animatedRespCallback(resp *http.Response) (bool, error) {
 	switch resp.StatusCode {
 	case http.StatusNotFound:
-		return fmt.Errorf("emote does not exist")
+		return false, fmt.Errorf("emote does not exist")
 	case http.StatusBadRequest:
-		return fmt.Errorf("wrong ID")
+		return false, fmt.Errorf("wrong ID")
 	case http.StatusOK:
-		return nil
+		return false, nil
 	default:
-		return fmt.Errorf(
+		return true, fmt.Errorf(
 			"request returned unexpected status code %d", resp.StatusCode,
 		)
 	}
