@@ -469,7 +469,7 @@ func userPacksPreviews(
 		previews[i] = *preview
 	}
 
-	total, err := db.PublicPacksCount()
+	total, err := db.UserPacksCount(userID)
 	if err != nil {
 		return nil, err
 	}
