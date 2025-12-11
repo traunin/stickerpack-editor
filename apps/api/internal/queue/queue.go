@@ -34,17 +34,18 @@ type JobResult struct {
 }
 
 type Job struct {
-	ID         string
-	Handler    JobHandler
-	Request    *http.Request
-	Context    context.Context
-	Cancel     context.CancelFunc
-	Progress   chan ProgressEvent
-	Result     chan JobResult
-	CreatedAt  time.Time
-	StartedAt  *time.Time
-	FinishedAt *time.Time
-	Status     JobStatus
+	ID              string
+	Handler         JobHandler
+	Request         *http.Request
+	Context         context.Context
+	Cancel          context.CancelFunc
+	Progress        chan ProgressEvent
+	Result          chan JobResult
+	CreatedAt       time.Time
+	StartedAt       *time.Time
+	FinishedAt      *time.Time
+	Status          JobStatus
+	CompletedResult *JobResult
 }
 
 type JobHandler interface {
@@ -139,16 +140,21 @@ func (q *Queue) processJob(job *Job, workerID int) {
 		}
 	}
 
+	job.CompletedResult = &jobResult
+
 	select {
 	case job.Result <- jobResult:
 	case <-job.Context.Done():
 	}
 
-	q.mutex.Lock()
-	delete(q.activeJobs, job.ID)
-	q.mutex.Unlock()
-
 	log.Printf("Worker %d completed job %s in %v", workerID, job.ID, finishedAt.Sub(*job.StartedAt))
+	go func() {
+		time.Sleep(30 * time.Second) // Keep job for 30 seconds
+		q.mutex.Lock()
+		delete(q.activeJobs, job.ID)
+		q.mutex.Unlock()
+		log.Printf("Cleaned up job %s", job.ID)
+	}()
 }
 
 func (q *Queue) Enqueue(handler JobHandler, r *http.Request) (string, error) {
@@ -237,6 +243,13 @@ func (q *Queue) SSEHandler(w http.ResponseWriter, r *http.Request, jobID string)
 	job, exists := q.GetJob(jobID)
 	if !exists {
 		fmt.Fprintf(w, "event: error\ndata: %q\n\n", "Job not found")
+		flusher.Flush()
+		return
+	}
+
+	if job.CompletedResult != nil {
+		data, _ := json.Marshal(job.CompletedResult)
+		fmt.Fprintf(w, "event: result\ndata: %s\n\n", data)
 		flusher.Flush()
 		return
 	}
