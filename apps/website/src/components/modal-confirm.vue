@@ -60,6 +60,7 @@ function cancel() {
   background: var(--background);
   font-size: 1.5em;
   color: var(--text);
+  border-radius: 10px;
 }
 
 .actions {
@@ -70,9 +71,15 @@ function cancel() {
 button {
   color: var(--text);
   font-size: 1.2em;
-  padding: 5px 10px;
+  padding: 5px 20px;
   border: none;
   cursor: pointer;
+  border-radius: 10px;
+  border: 2px solid transparent
+}
+
+button:hover {
+  border-color: var(--border);
 }
 
 .cancel {
