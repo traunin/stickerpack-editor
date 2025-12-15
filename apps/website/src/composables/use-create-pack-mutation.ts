@@ -1,17 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { uploadPack } from '@/api/stickerpack-upload'
-import type { ProgressEvent, StickerpackRequest } from '@/api/stickerpack-upload'
-import { useErrorPopup } from './use-error-popup'
+import type { ProgressEvent } from '@/api/job'
+import { createPack } from '@/api/pack-create'
+import type { CreatePackRequest } from '@/api/pack-create'
+import { useErrorPopup } from '@/composables/use-error-popup'
 
-export function useUploadPackMutation() {
+export function useCreatePackMutation() {
   const queryClient = useQueryClient()
   const uploadError = useErrorPopup()
 
   const mutation = useMutation({
     mutationFn: ({ request, onProgress }: {
-      request: StickerpackRequest
+      request: CreatePackRequest
       onProgress?: (progress: ProgressEvent) => void
-    }) => uploadPack(request, onProgress),
+    }) => createPack(request, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['packs', 'user'] })
       queryClient.invalidateQueries({ queryKey: ['packs', 'public'] })

@@ -1,6 +1,7 @@
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUploadPackMutation } from '@/composables/use-upload-pack-mutation'
+import type { ProgressEvent } from '@/api/job'
+import { useCreatePackMutation } from '@/composables/use-create-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
 import type { PackParameters } from '@/types/pack'
 import type { Sticker } from '@/types/sticker'
@@ -8,24 +9,24 @@ import type { Sticker } from '@/types/sticker'
 export function usePackCreation() {
   const router = useRouter()
   const createdPack = useCreatedPackStore()
-  const uploadPackMutation = useUploadPackMutation()
+  const createPackMutation = useCreatePackMutation()
 
   const progress = ref<ProgressEvent | null>(null)
 
-  const isUploading = computed(() => uploadPackMutation.isPending.value)
-  const uploadError = uploadPackMutation.uploadError
+  const isCreating = computed(() => createPackMutation.isPending.value)
+  const createError = createPackMutation.uploadError
 
   async function createPack(packParams: PackParameters, stickers: Sticker[]) {
     if (packParams.name === '' || packParams.name === null) {
-      uploadError.show('Pack name is required')
+      createError.show('Pack name is required')
       return
     }
     if (packParams.hasWatermark === undefined) {
-      uploadError.show('Watermark info is required')
+      createError.show('Watermark info is required')
       return
     }
     try {
-      const response = await uploadPackMutation.mutateAsync({
+      const response = await createPackMutation.mutateAsync({
         request: {
           pack_name: packParams.name ?? '',
           title: packParams.title,
@@ -52,8 +53,8 @@ export function usePackCreation() {
 
   return {
     progress,
-    isUploading,
-    uploadError,
+    isCreating,
+    createError,
     createPack,
   }
 }

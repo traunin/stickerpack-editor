@@ -1,10 +1,10 @@
 <template>
   <ErrorMessage
-    :error="uploadError"
+    :error="createError"
     :cleanup-timeout="4000"
   />
   <ModalProgress
-    v-if="isUploading"
+    v-if="isCreating"
     :progress="progress"
   />
 
@@ -65,7 +65,7 @@ const titleError = ref<string | null>(null)
 const stickerCount = computed(() => stickers.value.length)
 const maxStickers = 50
 
-const { progress, isUploading, uploadError, createPack } = usePackCreation()
+const { progress, isCreating, createError, createPack } = usePackCreation()
 
 const buttonError = usePackValidation(
   nameError,
