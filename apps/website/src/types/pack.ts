@@ -1,3 +1,5 @@
+import type { Sticker } from './sticker'
+
 export interface PackPreview {
   id: number
   title: string
@@ -6,8 +8,27 @@ export interface PackPreview {
 }
 
 export interface PackParameters {
+  name?: string
+  title: string
+  hasWatermark?: boolean
+  isPublic: boolean
+}
+
+export interface Pack {
+  title: string
+  isPublic: boolean
+  stickers: Sticker[]
+}
+
+export interface TelegramStickerSet {
   name: string
   title: string
-  hasWatermark: boolean
-  isPublic: boolean
+  is_public: boolean
+  stickers: TelegramSticker[]
+}
+
+export interface TelegramSticker {
+  file_id: string
+  fileUniqueID: string
+  emoji: string
 }

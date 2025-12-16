@@ -21,3 +21,17 @@ export function createSticker(emote: Emote, source: Source): Sticker {
     ...emote,
   }
 }
+
+export function stickersToEmoteInput(stickers: Sticker[]): EmoteInput[] {
+  return stickers.map(sticker => ({
+    source: String(sticker.source),
+    id: sticker.id,
+    emoji_list: sticker.emoji_list,
+  }))
+}
+
+interface EmoteInput {
+  source: string
+  id: string
+  emoji_list: string[]
+}
