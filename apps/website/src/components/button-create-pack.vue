@@ -1,6 +1,6 @@
 <template>
   <button :disabled="!!error" class="create-button">
-    Create {{ error ? ` | ${error}` : '' }}
+    <slot>Create</slot> {{ error ? ` | ${error}` : '' }}
   </button>
 </template>
 
