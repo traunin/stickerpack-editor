@@ -45,6 +45,10 @@ const thumbnailUrl = `${API_URL}/media?file_id=${props.stickerpack.thumbnail_id}
   border: 2px solid var(--border-hover);
 }
 
+.stickerpack-preview:has(.edit:hover) {
+  border-color: transparent;
+}
+
 .preview {
   width: 160px;
   height: 160px;
@@ -75,7 +79,12 @@ const thumbnailUrl = `${API_URL}/media?file_id=${props.stickerpack.thumbnail_id}
   justify-content: center;
   align-items: center;
   background: var(--primary);
-  border-radius: 100%
+  border-radius: 100%;
+  border: 2px solid transparent;
+}
+
+.edit:hover {
+  border-color: var(--border-hover);
 }
 
 .edit-icon {
