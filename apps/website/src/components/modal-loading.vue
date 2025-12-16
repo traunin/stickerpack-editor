@@ -49,6 +49,7 @@ defineProps<{
   background: var(--background);
   font-size: 1.5em;
   color: var(--text);
+  border-radius: 10px;
 }
 
 .progress {
@@ -56,8 +57,9 @@ defineProps<{
   background-color: var(--primary);
   color: var(--color);
   top: 0;
-  bottom:0;
+  bottom: 0;
   left: 0;
+  border-radius: 10px;
 }
 
 .progress-bar {
