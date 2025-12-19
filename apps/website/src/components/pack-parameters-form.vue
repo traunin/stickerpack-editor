@@ -1,6 +1,7 @@
 <template>
   <div class="parameters">
     <PackNameInput
+      v-if="!isEditing"
       v-model="name"
       class="name"
       @error="forwardNameError"
@@ -8,10 +9,10 @@
     <PackTitleInput
       v-model="title"
       class="title"
-      :use-watermark="hasWatermark"
+      :use-watermark="hasWatermark || false"
       @error="forwardTitleError"
     />
-    <div class="watermark">
+    <div v-if="!isEditing" class="watermark">
       <input id="watermark" v-model="hasWatermark" type="checkbox" checked>
       <label for="watermark">Bot name watermark</label>
     </div>
@@ -34,6 +35,7 @@ import PackTitleInput from './pack-title-input.vue'
 defineProps<{
   stickerCount: number
   maxStickers: number
+  isEditing?: boolean
 }>()
 
 const emit = defineEmits<{
