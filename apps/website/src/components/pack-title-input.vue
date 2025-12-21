@@ -1,6 +1,7 @@
 <template>
   <div class="pack-title-input">
     <input
+      id="pack-title-input"
       v-model="name"
       type="text"
       placeholder="Displayed title"

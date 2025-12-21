@@ -1,6 +1,7 @@
 <template>
   <div class="pack-name-input">
     <input
+      id="pack-name-input"
       v-model="name"
       type="text"
       placeholder="Name in links (a-z, 0-9, _)"
