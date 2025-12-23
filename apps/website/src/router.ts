@@ -26,6 +26,11 @@ export const routes: RouteRecordRaw[] = [
     name: 'packCreated',
     component: () => import('@/views/stickerpack-created.vue'),
   },
+  {
+    path: '/edit/:name',
+    component: () => import('@/views/stickerpack-edit.vue'),
+    props: true,
+  },
 ]
 
 export const navbarRoutes = routes.filter((route) => route.meta?.inNavbar)
