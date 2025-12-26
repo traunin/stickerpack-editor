@@ -13,6 +13,11 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     restart: unless-stopped
     networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres-backup:
     image: tiredofit/db-backup
@@ -36,7 +41,8 @@ services:
       DB01_PASS: ${DB_PASSWORD}
 
     depends_on:
-    - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks: [internal]
       
@@ -57,7 +63,8 @@ services:
       DOWNLOAD_RETRIES: ${DOWNLOAD_RETRIES}
       PORT: ${PORT}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks: [internal]
 
