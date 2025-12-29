@@ -1,5 +1,5 @@
 interface MediaData {
-  url: string
+  blob: Blob
   isVideo: boolean
 }
 
@@ -11,8 +11,7 @@ export async function fetchMedia(url: string): Promise<MediaData> {
   }
 
   const blob = await res.blob()
-  const isVideo = blob.type === 'video/webm'
-  const objectUrl = URL.createObjectURL(blob)
+  const isVideo = blob.type.startsWith('video/')
 
-  return { url: objectUrl, isVideo }
+  return { blob, isVideo }
 }
