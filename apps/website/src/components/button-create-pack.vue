@@ -21,7 +21,6 @@ defineProps<{
   color: var(--text);
   font-size: 1.3em;
   padding: 10px;
-  color: var(--text);
   border: none;
   margin-top: 0;
   cursor: pointer;
