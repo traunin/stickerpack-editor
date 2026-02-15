@@ -9,24 +9,24 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tanstack/vue-query": "^5.91.2",
-    "@vueuse/core": "^14.0.0",
+    "@tanstack/vue-query": "^5.92.9",
+    "@vueuse/core": "^14.2.1",
     "graphemer": "^1.4.0",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
-    "vue": "^3.5.24",
-    "vue-router": "^4.6.3",
+    "vue": "^3.5.28",
+    "vue-router": "^4.6.4",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^6.2.0",
-    "@types/node": "^24.10.1",
-    "@vitejs/plugin-vue": "^6.0.1",
-    "eslint": "^9.39.1",
+    "@antfu/eslint-config": "^7.4.3",
+    "@types/node": "^25.2.3",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "eslint": "^9.39.2",
     "typescript": "~5.9.3",
-    "vite": "^7.2.2",
+    "vite": "^7.3.1",
     "vite-svg-loader": "^5.1.0",
-    "vue-tsc": "^3.1.4"
+    "vue-tsc": "^3.2.4"
   },
-  "packageManager": "pnpm@10.19.0"
+  "packageManager": "pnpm@10.29.3"
 }

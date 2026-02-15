@@ -16,15 +16,10 @@ export default antfu({
       groups: [
         'builtin',
         'external',
-        ['internal', 'internal-type'],
+        'internal',
         ['parent', 'sibling', 'index'],
-
         'type',
-        ['parent-type', 'sibling-type', 'index-type'],
-
         'side-effect',
-        'object',
-        'unknown',
       ],
       newlinesBetween: 'ignore',
       order: 'asc',
