@@ -4,12 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
+)
+
+const (
+	maxPublicPacksPageSize = 100
 )
 
 func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +24,7 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page is not a number", http.StatusBadRequest)
 		return
 	}
+
 	pageSize, err := strconv.Atoi(query.Get("page_size"))
 	if err != nil {
 		http.Error(w, "page_size is not a number", http.StatusBadRequest)
@@ -39,6 +45,15 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if pageSize > maxPublicPacksPageSize {
+		http.Error(
+			w,
+			fmt.Sprintf("page_size has to be <= %d", maxPublicPacksPageSize),
+			http.StatusBadRequest,
+		)
+		return
+	}
+
 	json.NewEncoder(w).Encode(resp)
 }
 

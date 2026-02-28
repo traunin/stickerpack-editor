@@ -18,6 +18,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	maxUserPacksPageSize = 100
+)
+
 type DeletePackResponse struct {
 	Success bool `json:"success"`
 }
@@ -421,6 +425,7 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page is not a number", http.StatusBadRequest)
 		return
 	}
+
 	pageSize, err := strconv.Atoi(query.Get("page_size"))
 	if err != nil {
 		http.Error(w, "page_size is not a number", http.StatusBadRequest)
@@ -434,6 +439,15 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page_size has to be > 0", http.StatusBadRequest)
 		return
 	}
+	if pageSize > maxUserPacksPageSize {
+		http.Error(
+			w,
+			fmt.Sprintf("page_size has to be <= %d", maxUserPacksPageSize),
+			http.StatusBadRequest,
+		)
+		return
+	}
+
 	userID, ctxErr := UserIDFromContext(r)
 	if ctxErr != nil {
 		http.Error(w, ctxErr.Error(), http.StatusBadRequest)
