@@ -39,18 +39,18 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "page_size has to be > 0", http.StatusBadRequest)
 		return
 	}
-
-	resp, err := publicPacksPreviews(r.Context(), page, pageSize)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	if pageSize > maxPublicPacksPageSize {
 		http.Error(
 			w,
 			fmt.Sprintf("page_size has to be <= %d", maxPublicPacksPageSize),
 			http.StatusBadRequest,
 		)
+		return
+	}
+
+	resp, err := publicPacksPreviews(r.Context(), page, pageSize)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
