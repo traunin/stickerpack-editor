@@ -49,6 +49,7 @@ func deleteSessionHandler(w http.ResponseWriter, _ *http.Request) {
 		Path:     "/",
 		Domain:   domain,
 		HttpOnly: true,
+		Secure:   true,
 		MaxAge:   -1,
 	})
 }
