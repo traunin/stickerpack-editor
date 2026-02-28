@@ -45,7 +45,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks: [internal]
-      
+
   api:
     build:
       context: ./apps/api
@@ -72,6 +72,7 @@ services:
     build:
       context: ./apps/website
       args:
+        VITE_TENOR_API_KEY: ${TENOR_API_KEY}
         VITE_DOMAIN: ${DOMAIN}
         VITE_API_URL: https://${DOMAIN}/api
         VITE_BOT_NAME: ${BOT_NAME}
