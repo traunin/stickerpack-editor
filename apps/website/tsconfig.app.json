@@ -23,10 +23,9 @@
     "noUncheckedSideEffectImports": true,
 
     /* @ path */
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     }
   },
