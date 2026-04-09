@@ -15,8 +15,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { Sticker } from '@/types/sticker'
 import EmoteSource from './emote-source.vue'
+import type { Sticker } from '@/types/sticker'
 
 defineProps<{
   stickerCount: number

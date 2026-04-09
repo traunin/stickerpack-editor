@@ -3,17 +3,21 @@ import { computed, ref, unref, watch } from 'vue'
 import { API_URL } from '@/api/config'
 import type { MaybeRef } from 'vue'
 
+const firstLetterRegex = /^[a-z]/i
+const lettersNumbersUnderscoresRegex = /^\w+$/
+const consecutiveUnderscoresRegex = /__/
+
 function validateName(name: string): string | null {
   if (name.length === 0) {
     return 'Name is empty'
   }
-  if (!/^[a-z]/i.test(name)) {
+  if (!firstLetterRegex.test(name)) {
     return 'Name must start with a letter'
   }
-  if (!/^\w+$/.test(name)) {
+  if (!lettersNumbersUnderscoresRegex.test(name)) {
     return 'Only letters, numbers, and underscores allowed'
   }
-  if (/__/.test(name)) {
+  if (consecutiveUnderscoresRegex.test(name)) {
     return 'No consecutive underscores'
   }
   if (name.endsWith('_')) {

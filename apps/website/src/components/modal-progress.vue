@@ -17,8 +17,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ProgressEvent } from '@/api/job'
 import LoadingAnimation from '@/components/loading-animation.vue'
+import type { ProgressEvent } from '@/api/job'
 
 const props = defineProps<{
   progress: ProgressEvent | null

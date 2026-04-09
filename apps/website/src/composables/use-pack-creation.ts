@@ -1,8 +1,8 @@
 import { computed, ref, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
-import type { ProgressEvent } from '@/api/job'
 import { useCreatePackMutation } from '@/composables/use-create-pack-mutation'
 import { useCreatedPackStore } from '@/stores/use-created-pack'
+import type { ProgressEvent } from '@/api/job'
 import type { PackParameters } from '@/types/pack'
 import type { Sticker } from '@/types/sticker'
 

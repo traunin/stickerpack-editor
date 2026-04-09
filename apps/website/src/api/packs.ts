@@ -1,7 +1,7 @@
 import { API_URL } from '@/api/config'
+import { splitEmojis } from './emoji'
 import type { Pack, PackPreview, TelegramSticker, TelegramStickerSet } from '@/types/pack'
 import type { Source, Sticker } from '@/types/sticker'
-import { splitEmojis } from './emoji'
 
 export interface PacksResponse {
   packs: PackPreview[]

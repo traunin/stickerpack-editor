@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { deletePack } from '@/api/pack-delete'
-import type { PacksResponse } from '@/api/packs'
 import { useErrorPopup } from './use-error-popup'
+import type { PacksResponse } from '@/api/packs'
 
 export function useDeletePackMutation() {
   const queryClient = useQueryClient()

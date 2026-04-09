@@ -1,5 +1,6 @@
 import { API_URL } from './config'
 
+const newlineRegex = /\r?\n/
 export interface ProgressEvent {
   done: number
   total: number
@@ -91,7 +92,7 @@ export async function handleJobSSE<T>(
         const rawEvent = buffer.slice(0, pos)
         buffer = buffer.slice(pos + len)
 
-        const lines = rawEvent.split(/\r?\n/)
+        const lines = rawEvent.split(newlineRegex)
         let eventType = 'message'
         const dataLines: string[] = []
         for (const line of lines) {

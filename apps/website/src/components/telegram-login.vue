@@ -8,8 +8,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { User } from '@/api/session'
 import { useTgAuthStore } from '@/stores/use-tg-auth'
+import type { User } from '@/api/session'
 
 declare global {
   interface Window {

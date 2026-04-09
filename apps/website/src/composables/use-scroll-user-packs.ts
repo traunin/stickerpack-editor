@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
-import type { PacksResponse } from '@/api/packs'
 import { fetchUserPacks } from '@/api/packs'
+import type { PacksResponse } from '@/api/packs'
 
 export function useScrollUserPacks(pageSize = 10, enabled = true) {
   const queryResult = useInfiniteQuery({

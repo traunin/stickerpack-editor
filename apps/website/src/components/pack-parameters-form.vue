@@ -29,8 +29,8 @@
 <script setup lang="ts">
 import { toRefs } from 'vue'
 import PackNameInput from '@/components/pack-name-input.vue'
-import type { PackParameters } from '@/types/pack'
 import PackTitleInput from './pack-title-input.vue'
+import type { PackParameters } from '@/types/pack'
 
 defineProps<{
   stickerCount: number

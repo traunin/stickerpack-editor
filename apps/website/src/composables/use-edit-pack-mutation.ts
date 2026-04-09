@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import type { ProgressEvent } from '@/api/job'
 import { editPack } from '@/api/pack-edit'
-import type { EditPackRequest } from '@/api/pack-edit'
 import { useErrorPopup } from '@/composables/use-error-popup'
+import type { ProgressEvent } from '@/api/job'
+import type { EditPackRequest } from '@/api/pack-edit'
 
 export function useEditPackMutation() {
   const queryClient = useQueryClient()
