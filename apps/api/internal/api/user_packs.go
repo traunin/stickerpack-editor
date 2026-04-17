@@ -337,7 +337,13 @@ func (h *CreatePackJobHandler) Handle(
 	}
 
 	progress(currentStep, steps, "Saving to database")
-	_ = pack.UpdateThumbnailID()
+	if err := pack.UpdateThumbnailID(); err != nil {
+        log.Printf(
+			"warn: thumbnail update failed for pack %v: %v",
+			pack.Title(),
+			err,
+		)
+    }
 	storedPack := db.NewStoredPack(
 		db.WithUserID(pack.UserID()),
 		db.WithName(pack.Name()),
