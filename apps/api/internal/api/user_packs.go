@@ -70,15 +70,18 @@ var format = map[bool]string{
 	false: "static",
 }
 
-func deletePackHandler(w http.ResponseWriter, r *http.Request, name string) {
+func (h *Handler) deletePackHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+) {
 	userID, err := UserIDFromContext(r)
 	if err != nil {
 		http.Error(w, "Failed to parse user id", http.StatusInternalServerError)
 		return
 	}
 
-	db := config.Load().DBConn()
-	owned, err := db.IsPackOwner(name, userID)
+	owned, err := h.db.IsPackOwner(name, userID)
 	if !owned || err != nil {
 		http.Error(w, "Can't confirm pack ownership", http.StatusUnauthorized)
 		return
@@ -104,24 +107,31 @@ func deletePackHandler(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 
-	err = db.DeletePack(name, userID)
+	err = h.db.DeletePack(name, userID)
 	if err != nil {
-		http.Error(w, "Failed to delete from db", http.StatusInternalServerError)
+		http.Error(
+			w,
+			"Failed to delete from db",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
 	json.NewEncoder(w).Encode(DeletePackResponse{Success: true})
 }
 
-func getPackHandler(w http.ResponseWriter, r *http.Request, name string) {
+func (h *Handler) getPackHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+) {
 	userID, err := UserIDFromContext(r)
 	if err != nil {
 		http.Error(w, "Failed to parse user id", http.StatusInternalServerError)
 		return
 	}
 
-	db := config.Load().DBConn()
-	owned, err := db.IsPackOwner(name, userID)
+	owned, err := h.db.IsPackOwner(name, userID)
 	if !owned || err != nil {
 		http.Error(w, "Can't confirm pack ownership", http.StatusUnauthorized)
 		return
@@ -146,9 +156,13 @@ func getPackHandler(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 
-	isPublic, err := db.IsPackPublic(name)
+	isPublic, err := h.db.IsPackPublic(name)
 	if err != nil {
-		http.Error(w, "Failed to query publicity", http.StatusInternalServerError)
+		http.Error(
+			w,
+			"Failed to query publicity",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -160,7 +174,11 @@ func getPackHandler(w http.ResponseWriter, r *http.Request, name string) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string {
+func applyWatermark(
+	title string,
+	hasWatermark bool,
+	cfg *config.Config,
+) string {
 	if hasWatermark {
 		return fmt.Sprintf("%s by @%s", title, cfg.BotName())
 	}
@@ -169,15 +187,18 @@ func applyWatermark(title string, hasWatermark bool, cfg *config.Config) string 
 
 type CreatePackJobHandler struct {
 	cfg *config.Config
+	db  *db.Postgres
 	req *CreatePackRequest
 }
 
 func NewCreatePackJobHandler(
 	cfg *config.Config,
+	dbConn *db.Postgres,
 	req *CreatePackRequest,
 ) *CreatePackJobHandler {
 	return &CreatePackJobHandler{
 		cfg: cfg,
+		db:  dbConn,
 		req: req,
 	}
 }
@@ -186,17 +207,16 @@ func (h *CreatePackJobHandler) GetJobType() string {
 	return "create_stickerpack"
 }
 
-func createPackHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createPackHandler(w http.ResponseWriter, r *http.Request) {
 	req, mr := parseCreatePackRequest(w, r)
 	if mr != nil {
 		http.Error(w, mr.Error(), mr.status)
 		return
 	}
 
-	cfg := config.Load()
-	handler := NewCreatePackJobHandler(cfg, req)
+	handler := NewCreatePackJobHandler(h.cfg, h.db, req)
 
-	jobID, err := jobQueue.Enqueue(handler, r)
+	jobID, err := h.queue.Enqueue(handler, r)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to enqueue job: %v", err)
 		http.Error(w, msg, http.StatusInternalServerError)
@@ -338,12 +358,12 @@ func (h *CreatePackJobHandler) Handle(
 
 	progress(currentStep, steps, "Saving to database")
 	if err := pack.UpdateThumbnailID(); err != nil {
-        log.Printf(
+		log.Printf(
 			"warn: thumbnail update failed for pack %v: %v",
 			pack.Title(),
 			err,
 		)
-    }
+	}
 	storedPack := db.NewStoredPack(
 		db.WithUserID(pack.UserID()),
 		db.WithName(pack.Name()),
@@ -352,7 +372,7 @@ func (h *CreatePackJobHandler) Handle(
 		db.WithThumbnail(pack.ThumbnailID()),
 	)
 
-	createdPack, err := h.cfg.DBConn().AddStickerpack(storedPack)
+	createdPack, err := h.db.AddStickerpack(storedPack)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save pack to database: %w", err)
 	}
@@ -424,7 +444,7 @@ func parseCreatePackRequest(
 	return
 }
 
-func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	page, err := strconv.Atoi(query.Get("page"))
 	if err != nil {
@@ -460,7 +480,7 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := userPacksPreviews(r.Context(), userID, page, pageSize)
+	resp, err := h.userPacksPreviews(r.Context(), userID, page, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -468,14 +488,13 @@ func getUserPacksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func userPacksPreviews(
+func (h *Handler) userPacksPreviews(
 	ctx context.Context,
 	userID int64,
 	page,
 	pageSize int,
 ) (*GetPacksResponse, error) {
-	db := config.Load().DBConn()
-	packs, err := db.UserPacks(userID, page, pageSize)
+	packs, err := h.db.UserPacks(userID, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -487,7 +506,7 @@ func userPacksPreviews(
 		if err != nil {
 			if errors.Is(err, telegram.ErrorPackNotFound) {
 				log.Printf("Deleting pack %s from db", name)
-				config.Load().DBConn().DeleteMissingPack(name)
+				h.db.DeleteMissingPack(name)
 				continue
 			}
 			return nil, err
@@ -495,7 +514,7 @@ func userPacksPreviews(
 		previews = append(previews, *preview)
 	}
 
-	total, err := db.UserPacksCount(userID)
+	total, err := h.db.UserPacksCount(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -506,15 +525,18 @@ func userPacksPreviews(
 	}, nil
 }
 
-func nameExistsHandler(w http.ResponseWriter, r *http.Request, name string) {
+func (h *Handler) nameExistsHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+) {
 	// race condition: two people create a pack with the same name
 	// handled by telegram and UNIQUE(name), but it's not the solution
 	// might store names of stickerpacks being parsed and fail early
 	// but if the earlier pack with the same name fails...
 	// this is just for the frontend to have a tick on the name input field
-	cfg := config.Load()
 	validName := telegram.ValidPackName(name)
-	exists, err := cfg.DBConn().NameExists(validName)
+	exists, err := h.db.NameExists(validName)
 	if err != nil {
 		http.Error(
 			w,
@@ -533,15 +555,18 @@ func nameExistsHandler(w http.ResponseWriter, r *http.Request, name string) {
 
 type EditPackJobHandler struct {
 	cfg *config.Config
+	db  *db.Postgres
 	req *EditPackRequest
 }
 
 func NewEditPackJobHandler(
 	cfg *config.Config,
+	dbConn *db.Postgres,
 	req *EditPackRequest,
 ) *EditPackJobHandler {
 	return &EditPackJobHandler{
 		cfg: cfg,
+		db:  dbConn,
 		req: req,
 	}
 }
@@ -550,17 +575,20 @@ func (h *EditPackJobHandler) GetJobType() string {
 	return "edit_stickerpack"
 }
 
-func editPackHandler(w http.ResponseWriter, r *http.Request, name string) {
+func (h *Handler) editPackHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+	name string,
+) {
 	req, mr := parseEditPackRequest(w, r, name)
 	if mr != nil {
 		http.Error(w, mr.Error(), mr.status)
 		return
 	}
 
-	cfg := config.Load()
-	handler := NewEditPackJobHandler(cfg, req)
+	handler := NewEditPackJobHandler(h.cfg, h.db, req)
 
-	jobID, err := jobQueue.Enqueue(handler, r)
+	jobID, err := h.queue.Enqueue(handler, r)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to enqueue job: %v", err)
 		http.Error(w, msg, http.StatusInternalServerError)
@@ -656,7 +684,7 @@ func (h *EditPackJobHandler) Handle(
 	if err := editEmojiStage(req.EmojiUpdates, prog); err != nil {
 		return nil, fmt.Errorf("failed to update emojis: %w", err)
 	}
-	if err := editUpdateIsPublicStage(req, name, prog); err != nil {
+	if err := editUpdateIsPublicStage(req, name, prog, h.db); err != nil {
 		return nil, fmt.Errorf("failed to update IsPublic: %w", err)
 	}
 	if err := editUpdateTitleStage(req, pack, prog); err != nil {
@@ -738,9 +766,9 @@ func editUpdateIsPublicStage(
 	req *EditPackRequest,
 	packName string,
 	prog *editProgress,
+	dbConn *db.Postgres,
 ) error {
 	if req.UpdatedIsPublic != nil {
-		dbConn := config.Load().DBConn()
 		err := dbConn.UpdateIsPublic(packName, *req.UpdatedIsPublic)
 		if err != nil {
 			return err

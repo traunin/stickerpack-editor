@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/queue"
 )
 
@@ -30,10 +31,13 @@ var noAuthRoutes = []NoAuthRoute{
 	{Path: "", Method: http.MethodOptions, PrefixMatch: true}, // preflight
 }
 
-var jobQueue *queue.Queue
+type Handler struct {
+	cfg   *config.Config
+	db    *db.Postgres
+	queue *queue.Queue
+}
 
-func withCORS(h http.Handler) http.Handler {
-	domain := config.Load().Domain()
+func withCORS(domain string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", domain)
 		w.Header().Set(
@@ -52,54 +56,57 @@ func withCORS(h http.Handler) http.Handler {
 			return
 		}
 
-		h.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
-func withContentTypeJSON(h http.Handler) http.Handler {
+func withContentTypeJSON(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, mediaRoute) &&
 			!strings.HasPrefix(r.URL.Path, baseRoute+jobStatusRoute) {
 			w.Header().Set("Content-Type", "application/json")
 		}
-		h.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
 
-func SetupHandler() http.Handler {
-	cfg := config.Load()
-	jobQueue = queue.NewQueue(cfg.QueueWorkers())
+func SetupHandler(cfg *config.Config, dbConn *db.Postgres) http.Handler {
+	h := &Handler{
+		cfg:   cfg,
+		db:    dbConn,
+		queue: queue.NewQueue(cfg.QueueWorkers()),
+	}
 
 	mux := http.NewServeMux()
 	api := http.NewServeMux()
 
-	api.HandleFunc(sessionRoute, sessionHandler)
-	api.HandleFunc(publicPacksRoute, publicPacksHandler)
-	api.HandleFunc(userPackRoute, userPackHandler)
-	api.HandleFunc(userPacksRoute, userPacksHandler)
-	api.HandleFunc(mediaRoute, mediaHandler)
-	api.HandleFunc(jobStatusRoute, jobStatusHandler)
-	api.HandleFunc(queueStatusRoute, queueStatsHandler)
+	api.HandleFunc(sessionRoute, h.sessionHandler)
+	api.HandleFunc(publicPacksRoute, h.publicPacksHandler)
+	api.HandleFunc(userPackRoute, h.userPackHandler)
+	api.HandleFunc(userPacksRoute, h.userPacksHandler)
+	api.HandleFunc(mediaRoute, h.mediaHandler)
+	api.HandleFunc(jobStatusRoute, h.jobStatusHandler)
+	api.HandleFunc(queueStatusRoute, h.queueStatsHandler)
 
 	mux.Handle(baseRoute+"/", http.StripPrefix(baseRoute, api))
 
-	auth := JWTMiddleware(noAuthRoutes, mux)
+	auth := h.jwtMiddleware(noAuthRoutes, mux)
 	contentType := withContentTypeJSON(auth)
-	cors := withCORS(contentType)
+	cors := withCORS(cfg.Domain(), contentType)
 
 	return cors
 }
 
-func publicPacksHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) publicPacksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getPublicPacksHandler(w, r)
+		h.getPublicPacksHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func userPackHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) userPackHandler(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimPrefix(r.URL.Path, userPackRoute)
 	if name == "" {
 		http.Error(w, "Missing pack name", http.StatusBadRequest)
@@ -108,43 +115,43 @@ func userPackHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodDelete:
-		deletePackHandler(w, r, name)
+		h.deletePackHandler(w, r, name)
 	case http.MethodGet:
-		getPackHandler(w, r, name)
+		h.getPackHandler(w, r, name)
 	case http.MethodPatch:
-		editPackHandler(w, r, name)
+		h.editPackHandler(w, r, name)
 	case http.MethodHead:
-		nameExistsHandler(w, r, name)
+		h.nameExistsHandler(w, r, name)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func userPacksHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) userPacksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getUserPacksHandler(w, r)
+		h.getUserPacksHandler(w, r)
 	case http.MethodPost:
-		createPackHandler(w, r)
+		h.createPackHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func sessionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) sessionHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	switch r.Method {
 	case http.MethodPost:
-		createSessionHandler(w, r)
+		h.createSessionHandler(w, r)
 	case http.MethodDelete:
-		deleteSessionHandler(w, r)
+		h.deleteSessionHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func jobStatusHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) jobStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -156,16 +163,16 @@ func jobStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobQueue.SSEHandler(w, r, jobID)
+	h.queue.SSEHandler(w, r, jobID)
 }
 
-func queueStatsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) queueStatsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	stats := jobQueue.GetQueueStats()
+	stats := h.queue.GetQueueStats()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
 }

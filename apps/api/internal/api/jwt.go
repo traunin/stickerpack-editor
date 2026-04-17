@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -22,17 +21,15 @@ type Claims struct {
 	Id int64 `json:"id"`
 }
 
-func SignID(id int64) (string, error) {
+func SignID(id int64, key []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id": id,
 	})
-	key := []byte(config.Load().SecretKey())
 
 	return token.SignedString(key)
 }
 
-func DecodeID(tokenStr string) (int64, error) {
-	key := []byte(config.Load().SecretKey())
+func DecodeID(tokenStr string, key []byte) (int64, error) {
 	claims := jwt.MapClaims{}
 	_, err := jwt.ParseWithClaims(
 		tokenStr,
@@ -44,7 +41,7 @@ func DecodeID(tokenStr string) (int64, error) {
 					token.Header["alg"],
 				)
 			}
-			return []byte(key), nil
+			return key, nil
 		})
 
 	if err != nil {
@@ -74,7 +71,8 @@ func isNoAuth(noAuthRoutes []NoAuthRoute, r *http.Request) bool {
 	return false
 }
 
-func JWTMiddleware(noAuthRoutes []NoAuthRoute, next http.Handler) http.Handler {
+func (h *Handler) jwtMiddleware(noAuthRoutes []NoAuthRoute, next http.Handler) http.Handler {
+	key := []byte(h.cfg.SecretKey())
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isNoAuth(noAuthRoutes, r) {
 			next.ServeHTTP(w, r)
@@ -87,7 +85,7 @@ func JWTMiddleware(noAuthRoutes []NoAuthRoute, next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := DecodeID(cookie.Value)
+		userID, err := DecodeID(cookie.Value, key)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Invalid JWT token: %v", err)
 			http.Error(w, errorMessage, http.StatusUnauthorized)

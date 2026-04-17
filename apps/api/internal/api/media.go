@@ -14,7 +14,6 @@ import (
 
 	"github.com/patrickmn/go-cache"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/retrier"
 )
 
@@ -23,7 +22,6 @@ const (
 )
 
 var (
-	mediaRetries   = config.Load().DownloadRetries()
 	httpClient     = &http.Client{Timeout: 15 * time.Second}
 	fileInfoCache  = cache.New(55*time.Minute, 20*time.Minute)
 	detectionLocks sync.Map
@@ -45,6 +43,7 @@ type FileStreamRequest struct {
 	Writer   http.ResponseWriter
 	FileInfo *CachedFileInfo
 	FileID   string
+	Retries  int
 }
 
 type DetectedStreamContext struct {
@@ -63,9 +62,10 @@ type GetFileResponse struct {
 	} `json:"result"`
 }
 
-func mediaHandler(w http.ResponseWriter, r *http.Request) {
-	cfg := config.Load()
+func (h *Handler) mediaHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	retries := h.cfg.DownloadRetries()
+	token := h.cfg.TelegramToken()
 
 	fileID, err := extractFileID(r)
 	if err != nil {
@@ -73,7 +73,7 @@ func mediaHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileInfo, err := getCachedOrFetchFileInfo(ctx, cfg, fileID)
+	fileInfo, err := getCachedOrFetchFileInfo(ctx, token, fileID, retries)
 	if err != nil {
 		log.Printf("Error fetching file info for %s: %v\n", fileID, err)
 		http.Error(w, "failed getting a download link", http.StatusBadGateway)
@@ -84,6 +84,7 @@ func mediaHandler(w http.ResponseWriter, r *http.Request) {
 		Writer:   w,
 		FileInfo: fileInfo,
 		FileID:   fileID,
+		Retries:  retries,
 	}
 	if err := streamFileAndMaybeDetect(ctx, req); err != nil {
 		if !isClientDisconnect(err) {
@@ -95,8 +96,9 @@ func mediaHandler(w http.ResponseWriter, r *http.Request) {
 
 func getCachedOrFetchFileInfo(
 	ctx context.Context,
-	cfg *config.Config,
+	token string,
 	fileID string,
+	retries int,
 ) (*CachedFileInfo, error) {
 	if info, found := fileInfoCache.Get(fileID); found {
 		return info.(*CachedFileInfo), nil
@@ -106,7 +108,7 @@ func getCachedOrFetchFileInfo(
 		return nil, err
 	}
 
-	fileURL, err := downloadLink(ctx, cfg, fileID)
+	fileURL, err := downloadLink(ctx, token, fileID, retries)
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +131,11 @@ func extractFileID(r *http.Request) (string, error) {
 	return fileID, nil
 }
 
-func streamFileAndMaybeDetect(ctx context.Context, req FileStreamRequest) error {
-	data, err := downloadFile(ctx, req.FileInfo.URL)
+func streamFileAndMaybeDetect(
+	ctx context.Context,
+	req FileStreamRequest,
+) error {
+	data, err := downloadFile(ctx, req.FileInfo.URL, req.Retries)
 	if err != nil {
 		return err
 	}
@@ -245,7 +250,11 @@ func isClientDisconnect(err error) bool {
 		strings.Contains(errStr, "client disconnected")
 }
 
-func downloadFile(ctx context.Context, fileURL string) ([]byte, error) {
+func downloadFile(
+	ctx context.Context,
+	fileURL string,
+	retries int,
+) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating request: %w", err)
@@ -253,24 +262,24 @@ func downloadFile(ctx context.Context, fileURL string) ([]byte, error) {
 	params := &retrier.RetryParams{
 		Request: req,
 		Client:  httpClient,
-		Retries: mediaRetries,
+		Retries: retries,
 	}
 	return retrier.Download(params)
 }
 
 func downloadLink(
 	ctx context.Context,
-	cfg *config.Config,
+	token string,
 	fileID string,
+	retries int,
 ) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 
-	botToken := cfg.TelegramToken()
 	reqURL := fmt.Sprintf(
 		"https://api.telegram.org/bot%s/getFile?file_id=%s",
-		botToken,
+		token,
 		url.QueryEscape(fileID),
 	)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
@@ -280,7 +289,7 @@ func downloadLink(
 	params := &retrier.RetryParams{
 		Request: req,
 		Client:  httpClient,
-		Retries: mediaRetries,
+		Retries: retries,
 	}
 	resp, err := retrier.RequestWithCallback(ctx, params, downloadLinkCallback)
 	if err != nil {
@@ -302,7 +311,7 @@ func downloadLink(
 
 	fileURL := fmt.Sprintf(
 		"https://api.telegram.org/file/bot%s/%s",
-		botToken,
+		token,
 		fileResp.Result.FilePath,
 	)
 	return fileURL, nil

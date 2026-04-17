@@ -5,10 +5,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/env"
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 )
 
 type Config struct {
@@ -19,7 +17,6 @@ type Config struct {
 	secretKey       string
 	downloadRetries int
 	queueWorkers    int
-	dbConn          *db.Postgres
 }
 
 var (
@@ -34,7 +31,6 @@ func (c *Config) Domain() string        { return c.domain }
 func (c *Config) SecretKey() string     { return c.secretKey }
 func (c *Config) DownloadRetries() int  { return c.downloadRetries }
 func (c *Config) QueueWorkers() int     { return c.queueWorkers }
-func (c *Config) DBConn() *db.Postgres  { return c.dbConn }
 
 func Load() *Config {
 	once.Do(func() {
@@ -64,7 +60,6 @@ func Load() *Config {
 			secretKey:       secretKey,
 			downloadRetries: downloadRetries,
 			queueWorkers:    queueWorkers,
-			dbConn:          db.NewPostgres(),
 		}
 	})
 

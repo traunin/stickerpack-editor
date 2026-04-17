@@ -146,6 +146,10 @@ func NewPostgres() *Postgres {
 	return nil
 }
 
+func (p *Postgres) Close() error {
+	return p.db.Close()
+}
+
 func (p *Postgres) AddStickerpack(pack *StoredPack) (*PackResponse, error) {
 	var resp PackResponse
 	err := p.db.QueryRow(

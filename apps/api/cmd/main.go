@@ -13,6 +13,7 @@ import (
 
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/api"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
+	"github.com/Traunin/stickerpack-editor/apps/api/internal/db"
 )
 
 func init() {
@@ -25,7 +26,8 @@ func init() {
 
 func main() {
 	cfg := config.Load()
-	handler := api.SetupHandler()
+	dbConn := db.NewPostgres()
+	handler := api.SetupHandler(cfg, dbConn)
 	addr := ":" + cfg.Port()
 	server := &http.Server{
 		Addr:    addr,
@@ -54,6 +56,9 @@ func main() {
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("HTTP shutdown error: %v", err)
+	}
+	if err := dbConn.Close(); err != nil {
+		log.Printf("db close error: %v", err)
 	}
 	log.Println("shutdown complete")
 }

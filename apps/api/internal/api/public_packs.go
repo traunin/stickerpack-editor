@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
@@ -17,7 +16,10 @@ const (
 	maxPublicPacksPageSize = 100
 )
 
-func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getPublicPacksHandler(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	query := r.URL.Query()
 	page, err := strconv.Atoi(query.Get("page"))
 	if err != nil {
@@ -48,7 +50,7 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := publicPacksPreviews(r.Context(), page, pageSize)
+	resp, err := h.publicPacksPreviews(r.Context(), page, pageSize)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -57,13 +59,12 @@ func getPublicPacksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func publicPacksPreviews(
+func (h *Handler) publicPacksPreviews(
 	ctx context.Context,
 	page,
 	pageSize int,
 ) (*GetPacksResponse, error) {
-	db := config.Load().DBConn()
-	packs, err := db.PublicStickerpacks(page, pageSize)
+	packs, err := h.db.PublicStickerpacks(page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func publicPacksPreviews(
 		if err != nil {
 			if errors.Is(err, telegram.ErrorPackNotFound) {
 				log.Printf("Deleting pack %s from db", name)
-				config.Load().DBConn().DeleteMissingPack(name)
+				h.db.DeleteMissingPack(name)
 				continue
 			}
 			return nil, err
@@ -83,7 +84,7 @@ func publicPacksPreviews(
 		previews = append(previews, *preview)
 	}
 
-	total, err := db.PublicPacksCount()
+	total, err := h.db.PublicPacksCount()
 	if err != nil {
 		return nil, err
 	}

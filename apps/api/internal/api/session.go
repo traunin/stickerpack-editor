@@ -4,25 +4,24 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Traunin/stickerpack-editor/apps/api/internal/config"
 	"github.com/Traunin/stickerpack-editor/apps/api/internal/telegram"
 )
 
-func createSessionHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createSessionHandler(w http.ResponseWriter, r *http.Request) {
 	req, err := telegram.ParseAuth(r)
 	if err != nil {
 		http.Error(w, "Failed to authenticate", http.StatusBadRequest)
 		return
 	}
 
-	jwt, err := SignID(req.ID)
+	jwt, err := SignID(req.ID, []byte(h.cfg.SecretKey()))
 	if err != nil {
 		http.Error(w, "Failed to sign JWT", http.StatusBadRequest)
 		return
 	}
 
 	// not sure how to store the domain yet
-	domain := config.Load().Domain()
+	domain := h.cfg.Domain()
 	domain = strings.TrimPrefix(domain, "http://")
 	domain = strings.TrimPrefix(domain, "https://")
 
@@ -38,8 +37,8 @@ func createSessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func deleteSessionHandler(w http.ResponseWriter, _ *http.Request) {
-	domain := config.Load().Domain()
+func (h *Handler) deleteSessionHandler(w http.ResponseWriter, _ *http.Request) {
+	domain := h.cfg.Domain()
 	domain = strings.TrimPrefix(domain, "http://")
 	domain = strings.TrimPrefix(domain, "https://")
 
