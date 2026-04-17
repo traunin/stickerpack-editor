@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	httpClient   = &http.Client{Timeout: 15 * time.Second}
-	fetchRetires = 3
+	httpClient        = &http.Client{Timeout: 15 * time.Second}
+	fetchRetires      = 3
 	ErrorPackNotFound = errors.New("pack was deleted or does not exist")
 )
 

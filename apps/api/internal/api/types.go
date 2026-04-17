@@ -6,5 +6,5 @@ import (
 
 type GetPacksResponse struct {
 	Packs []telegram.PackPreview `json:"packs"`
-	Total int               `json:"total"`
+	Total int                    `json:"total"`
 }

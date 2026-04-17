@@ -109,7 +109,7 @@ func RequestWithCallback(
 		}
 
 		shouldRetry, callbackErr := invokeCallback(resp, callback)
-		
+
 		if callbackErr == nil {
 			return resp, nil
 		}
