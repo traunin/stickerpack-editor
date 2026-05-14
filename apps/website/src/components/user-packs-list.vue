@@ -69,7 +69,6 @@ onMounted(async () => {
     },
     {
       root: null,
-      // @ts-expect-error scroll-margin was not included in IntersectionObserverInit
       scrollMargin: `${loadTriggerOffset}px`,
       threshold: 0,
     },

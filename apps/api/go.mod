@@ -1,6 +1,6 @@
 module github.com/Traunin/stickerpack-editor/apps/api
 
-go 1.26.1
+go 1.26.3
 
 require (
 	github.com/disintegration/imaging v1.6.2

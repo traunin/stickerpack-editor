@@ -1,5 +1,5 @@
 # Build executable
-FROM golang:1.26.1-alpine AS builder
+FROM golang:1.26.3-alpine AS builder
 
 RUN apk add --no-cache git ffmpeg
 
@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o api ./cmd/main.go
 
 # Run
-FROM alpine:latest
+FROM alpine:3.23.4
 
 RUN apk add --no-cache ffmpeg
 

@@ -2,14 +2,14 @@ name: stickerpack
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     container_name: stickerpack-db
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     restart: unless-stopped
     networks: [internal]

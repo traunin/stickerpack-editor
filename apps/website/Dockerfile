@@ -1,7 +1,7 @@
-FROM node:23-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 
-RUN corepack enable
+RUN npm install -g corepack && corepack enable
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -18,6 +18,6 @@ ENV VITE_DOMAIN=$VITE_DOMAIN \
 
 RUN pnpm run build
 
-FROM nginx:1.29.1-alpine-slim
+FROM nginx:1.31.0-alpine-slim
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
