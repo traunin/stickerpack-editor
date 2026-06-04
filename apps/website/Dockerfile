@@ -4,6 +4,7 @@ WORKDIR /app
 RUN npm install -g corepack && corepack enable
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+ENV CI=true
 RUN pnpm install --frozen-lockfile
 COPY . .
 

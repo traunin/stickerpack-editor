@@ -1,6 +1,6 @@
 module github.com/Traunin/stickerpack-editor/apps/api
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/disintegration/imaging v1.6.2
@@ -13,6 +13,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.12.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	golang.org/x/image v0.38.0 // indirect
+	golang.org/x/image v0.41.0 // indirect
 	golang.org/x/sync v0.20.0
 )
