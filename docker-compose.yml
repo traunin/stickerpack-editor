@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
     networks: [internal]
 
-  web:
+  caddy:
     build:
       context: ./apps/website
       args:
@@ -76,12 +76,6 @@ services:
         VITE_DOMAIN: ${DOMAIN}
         VITE_API_URL: https://${DOMAIN}/api
         VITE_BOT_NAME: ${BOT_NAME}
-    container_name: stickerpack-web
-    restart: unless-stopped
-    networks: [internal]
-
-  caddy:
-    image: caddy:2
     container_name: stickerpack-edge
     ports:
       - "80:80"
@@ -93,7 +87,6 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
     depends_on:
-      - web
       - api
     restart: unless-stopped
     networks: [internal]
